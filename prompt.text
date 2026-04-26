@@ -1,0 +1,835 @@
+You are an expert Rust and Tauri v2 developer. Build a complete, production-ready LocalSend clone desktop application called "SwiftShare" with ALL features listed below. Every file must be complete, compilable, and production-ready.
+---
+PROJECT OVERVIEW
+A fast, lightweight, cross-platform file sharing desktop app over local WiFi network. No internet required. No server required. Supports Windows, macOS, Linux.
+---
+TECH STACK
+Frontend: React 18 + TypeScript + Tailwind CSS + Framer Motion
+
+State: Zustand
+
+Icons: Lucide React
+
+i18n: i18next (Bangla + English)
+
+Backend: Rust + Tauri v2
+
+Async: Tokio
+
+HTTP Server: Axum
+
+HTTP Client: Reqwest
+
+mDNS: mdns-sd
+
+TLS: Rustls + rcgen
+
+Storage: Sled (embedded DB for history + favorites)
+
+Serialization: Serde + Serde_json
+
+Testing: Rust test framework + Vitest + React Testing Library
+
+---
+COMPLETE PROJECT STRUCTURE
+swiftshare/ ├── src-tauri/ │ ├── src/ │ │ ├── main.rs │ │ ├── lib.rs │ │ ├── discovery.rs │ │ ├── server.rs │ │ ├── sender.rs │ │ ├── crypto.rs │ │ ├── clipboard.rs │ │ ├── history.rs │ │ ├── favorites.rs │ │ ├── settings.rs │ │ ├── models.rs │ │ └── tests/ │ │ ├── discoverytest.rs │ │ ├── servertest.rs │ │ ├── sendertest.rs │ │ ├── clipboardtest.rs │ │ ├── historytest.rs │ │ └── favoritestest.rs │ ├── Cargo.toml │ └── tauri.conf.json ├── src/ │ ├── components/ │ │ ├── layout/ │ │ │ ├── Sidebar.tsx │ │ │ ├── TopBar.tsx │ │ │ └── MainLayout.tsx │ │ ├── devices/ │ │ │ ├── DeviceList.tsx │ │ │ ├── DeviceCard.tsx │ │ │ └── DeviceAvatar.tsx │ │ ├── transfer/ │ │ │ ├── FileDropZone.tsx │ │ │ ├── FilePreview.tsx │ │ │ ├── ImagePreview.tsx │ │ │ ├── FolderSelector.tsx │ │ │ ├── TransferProgress.tsx │ │ │ └── ReceiveDialog.tsx │ │ ├── clipboard/ │ │ │ ├── ClipboardSend.tsx │ │ │ └── ClipboardReceive.tsx │ │ ├── favorites/ │ │ │ └── FavoritesList.tsx │ │ ├── history/ │ │ │ └── HistoryList.tsx │ │ └── settings/ │ │ ├── SettingsMenu.tsx │ │ ├── GeneralSettings.tsx │ │ ├── NetworkSettings.tsx │ │ └── AppearanceSettings.tsx │ ├── hooks/ │ │ ├── useDevices.ts │ │ ├── useTransfer.ts │ │ ├── useClipboard.ts │ │ ├── useHistory.ts │ │ ├── useFavorites.ts │ │ └── useSettings.ts │ ├── store/ │ │ ├── deviceStore.ts │ │ ├── transferStore.ts │ │ ├── settingsStore.ts │ │ └── uiStore.ts │ ├── i18n/ │ │ ├── index.ts │ │ ├── en.json │ │ └── bn.json │ ├── utils/ │ │ ├── fileUtils.ts │ │ ├── formatUtils.ts │ │ └── deviceUtils.ts │ ├── types/ │ │ └── index.ts │ ├── App.tsx │ ├── main.tsx │ └── index.css ├── package.json ├── vite.config.ts └── tailwind.config.js
+---
+ALL FEATURES TO IMPLEMENT
+FEATURE 1: File & Folder Transfer
+Drag & drop files onto FileDropZone
+
+Click to open file browser (multiple files)
+
+Folder selection via FolderSelector (recursively include all files inside)
+
+Show file list with: name, size, type icon, remove button
+
+Send button activates only when: device selected + files ready
+
+Stream file bytes with real-time progress per file
+
+Support files up to 10GB
+
+Show transfer speed (MB/s) and ETA
+
+Allow cancelling mid-transfer
+
+FEATURE 2: Images & Media
+In FileDropZone, detect image files (jpg, png, gif, webp, svg, mp4, mp3)
+
+Show thumbnail preview for images before sending
+
+ImagePreview.tsx: grid of thumbnails with file names below
+
+On receive: if image, show preview in ReceiveDialog before saving
+
+Auto-open image in system viewer after receiving (optional, based on settings)
+
+FEATURE 3: Text/Clipboard Copy
+ClipboardSend.tsx: textarea where user types or pastes text
+
+"Send Clipboard" button → sends text to selected device
+
+On receive: ClipboardReceive popup shows received text
+
+Two buttons: "Copy to Clipboard" and "Dismiss"
+
+Also support sending current clipboard content with one click
+
+Keyboard shortcut: Ctrl+Shift+C to open clipboard send panel
+
+FEATURE 4: Favorites (Pinned Devices)
+Star icon on each DeviceCard
+
+Clicking star → saves device to favorites (persisted in Sled DB)
+
+FavoritesList.tsx in sidebar shows pinned devices
+
+Favorites appear at top of device list always
+
+Even if device is offline, favorites remain visible (greyed out)
+
+Right-click favorite → remove from favorites option
+
+FEATURE 5: Settings Menu
+Full settings panel with 3 tabs:
+GeneralSettings:
+Device Name (editable text field)
+
+Save path (default: ~/Downloads/SwiftShare, changeable)
+
+Quick Save toggle (skip accept dialog)
+
+Auto-open received files toggle
+
+Language selector (English / বাংলা)
+
+Startup behavior (start minimized / normal)
+
+NetworkSettings:
+Port number (default 53317, editable)
+
+Show local IP addresses
+
+Allow/block specific IPs
+
+Toggle device visibility (appear as hidden)
+
+AppearanceSettings:
+Theme toggle: Dark / Light / System
+
+Accent color picker (6 presets: indigo, violet, emerald, rose, amber, sky)
+
+Font size (Small / Medium / Large)
+
+Compact mode toggle (smaller device cards)
+
+FEATURE 6: Quick Save (No Dialog)
+When enabled in settings: incoming files are saved instantly to save path
+
+No popup, no confirmation
+
+Small toast notification bottom-right: "File saved: filename.ext"
+
+Toast auto-dismisses after 3 seconds
+
+Still shows in History
+
+FEATURE 7: History Log
+HistoryList.tsx: full list of all transfers (sent + received)
+
+Each entry: filename, size, direction (↑ sent / ↓ received), device name, timestamp
+
+Filter by: All / Sent / Received / Today / This Week
+
+Search bar to filter by filename or device name
+
+Click entry → show file location or "File no longer exists"
+
+Clear history button with confirmation dialog
+
+Persisted in Sled DB
+
+FEATURE 8: Dark/Light Theme Toggle
+Default: Dark theme
+
+Light theme: clean white/gray palette
+
+System: follows OS preference
+
+Smooth transition between themes (300ms)
+
+Theme persisted in settings
+
+---
+RUST BACKEND MODULES
+models.rs
+// Define these structs with Serialize, Deserialize, Clone, Debug:
+﻿
+pub struct DeviceInfo {
+    pub id: String,          // UUID
+    pub name: String,
+    pub ip: String,
+    pub port: u16,
+    pub device_type: DeviceType,  // Desktop, Mobile, Web
+    pub is_favorite: bool,
+    pub last_seen: u64,      // Unix timestamp
+}
+﻿
+pub enum DeviceType { Desktop, Mobile, Web }
+﻿
+pub struct FileMetadata {
+    pub id: String,
+    pub name: String,
+    pub size: u64,
+    pub mime_type: String,
+    pub sha256: String,
+}
+﻿
+pub struct TransferSession {
+    pub id: String,
+    pub files: Vec,
+    pub sender: DeviceInfo,
+    pub status: TransferStatus,
+    pub created_at: u64,
+}
+﻿
+pub enum TransferStatus { Pending, Accepted, Rejected, InProgress, Completed, Failed, Cancelled }
+﻿
+pub struct TransferProgress {
+    pub session_id: String,
+    pub file_id: String,
+    pub file_name: String,
+    pub bytes_transferred: u64,
+    pub total_bytes: u64,
+    pub speed_bps: f64,
+    pub eta_seconds: f64,
+}
+﻿
+pub struct HistoryEntry {
+    pub id: String,
+    pub file_name: String,
+    pub file_size: u64,
+    pub direction: TransferDirection,  // Sent, Received
+    pub device_name: String,
+    pub file_path: String,
+    pub timestamp: u64,
+    pub status: TransferStatus,
+}
+﻿
+pub struct ClipboardPayload {
+    pub text: String,
+    pub sender: DeviceInfo,
+    pub timestamp: u64,
+}
+﻿
+pub struct AppSettings {
+    pub device_name: String,
+    pub save_path: String,
+    pub quick_save: bool,
+    pub auto_open: bool,
+    pub language: String,      // "en" or "bn"
+    pub port: u16,
+    pub hidden: bool,
+    pub theme: String,         // "dark", "light", "system"
+    pub accent_color: String,
+    pub font_size: String,
+    pub compact_mode: bool,
+    pub start_minimized: bool,
+}
+
+discovery.rs
+Register mDNS service "swiftshare.tcp.local." on startup
+
+Include device name, port, device_type in TXT records
+
+Continuously scan for peers — update every 5 seconds
+
+Track last_seen timestamp per device
+
+Remove devices not seen for 30 seconds
+
+Emit Tauri event "devices-updated" with full device list on any change
+
+Handle network changes (WiFi switch) by restarting mDNS
+
+server.rs (Axum)
+Endpoints:
+GET /api/v1/info → return DeviceInfo JSON
+
+POST /api/v1/prepare-upload → accept FileMetadata[], return session_id + token
+
+POST /api/v1/upload/{sessionId}/{fileId} → receive file stream, save to disk
+
+POST /api/v1/clipboard → receive ClipboardPayload
+
+DELETE /api/v1/cancel/{sessionId} → cancel ongoing transfer
+
+Behavior:
+If quick_save=false: emit "incoming-request" Tauri event and WAIT for frontend to accept/reject (timeout 60s, default reject)
+
+If quick_save=true: immediately accept and save
+
+After each file saved: add to history via history.rs
+
+Emit "transfer-progress" events during upload
+
+Emit "transfer-complete" or "transfer-failed" on finish
+
+sender.rs
+Connect to target device HTTPS endpoint
+
+Call /api/v1/prepare-upload with all file metadata
+
+Wait for acceptance (poll or wait for response)
+
+For each file: stream bytes in 64KB chunks
+
+Track bytes sent → calculate speed + ETA → emit "transfer-progress" Tauri event
+
+After all files: verify SHA256 of each file
+
+Emit "transfer-complete" on success
+
+Handle cancellation via AtomicBool cancel flag
+
+clipboard.rs
+send_clipboard(target: DeviceInfo, text: String) → POST to /api/v1/clipboard
+
+On receive (server side): emit "clipboard-received" Tauri event with text + sender info
+
+readsystemclipboard() → use arboard crate to read OS clipboard
+
+writesystemclipboard(text: String) → write to OS clipboard
+
+history.rs
+Use Sled embedded database
+
+savehistoryentry(entry: HistoryEntry)
+
+get_history(filter: HistoryFilter) → Vec
+
+clear_history()
+
+delete_entry(id: String)
+
+favorites.rs
+Use Sled embedded database
+
+add_favorite(device: DeviceInfo)
+
+removefavorite(deviceid: String)
+
+get_favorites() → Vec
+
+isfavorite(deviceid: String) → bool
+
+settings.rs
+Load settings from app config directory (JSON file)
+
+save_settings(settings: AppSettings)
+
+get_settings() → AppSettings
+
+Default settings on first run
+
+Watch for settings changes and apply immediately (port change = restart server)
+
+crypto.rs
+Generate self-signed TLS cert on first run using rcgen
+
+Save to app data dir
+
+Load existing cert on subsequent runs
+
+Return (certpem, keypem) for use in Axum TLS config
+
+---
+TAURI COMMANDS (main.rs)
+// Discovery
+#[tauri::command] async fn get_devices() -> Vec
+#[tauri::command] async fn get_device_info() -> DeviceInfo
+﻿
+// Transfer
+#[tauri::command] async fn send_files(target: DeviceInfo, file_paths: Vec) -> Result
+#[tauri::command] async fn cancel_transfer(session_id: String) -> Result<(), String>
+#[tauri::command] async fn accept_transfer(session_id: String) -> Result<(), String>
+#[tauri::command] async fn reject_transfer(session_id: String) -> Result<(), String>
+﻿
+// Clipboard
+#[tauri::command] async fn send_clipboard_text(target: DeviceInfo, text: String) -> Result<(), String>
+#[tauri::command] async fn read_clipboard() -> Result
+#[tauri::command] async fn write_clipboard(text: String) -> Result<(), String>
+﻿
+// Favorites
+#[tauri::command] async fn add_favorite(device: DeviceInfo) -> Result<(), String>
+#[tauri::command] async fn remove_favorite(device_id: String) -> Result<(), String>
+#[tauri::command] async fn get_favorites() -> Vec
+﻿
+// History
+#[tauri::command] async fn get_history(filter: String) -> Vec
+#[tauri::command] async fn clear_history() -> Result<(), String>
+#[tauri::command] async fn delete_history_entry(id: String) -> Result<(), String>
+﻿
+// Settings
+#[tauri::command] async fn get_settings() -> AppSettings
+#[tauri::command] async fn save_settings(settings: AppSettings) -> Result<(), String>
+﻿
+// System
+#[tauri::command] async fn open_file(path: String) -> Result<(), String>
+#[tauri::command] async fn open_folder(path: String) -> Result<(), String>
+#[tauri::command] async fn get_local_ip() -> Vec
+
+---
+FRONTEND UI DESIGN
+Color System (CSS variables in index.css):
+/* Dark Theme */
+--bg-primary: #0a0a0a
+--bg-secondary: #111111
+--bg-surface: #1a1a1a
+--bg-elevated: #222222
+--border: #2a2a2a
+--text-primary: #ffffff
+--text-secondary: #a0a0a0
+--text-muted: #606060
+--accent: #6366f1        /* indigo - changeable */
+--accent-hover: #4f46e5
+--success: #22c55e
+--warning: #f59e0b
+--error: #ef4444
+﻿
+/* Light Theme */
+--bg-primary: #ffffff
+--bg-secondary: #f8f8f8
+--bg-surface: #f0f0f0
+--bg-elevated: #e8e8e8
+--border: #e0e0e0
+--text-primary: #0a0a0a
+--text-secondary: #505050
+--text-muted: #909090
+
+Layout (MainLayout.tsx):
+┌─────────────────────────────────────────────┐ │ TopBar: [SwiftShare logo] [device name] [⚙️]│ ├──────────────┬──────────────────────────────┤ │ │ │ │ Sidebar │ Main Content │ │ │ │ │ [Devices] │ Tabs: Send | Clipboard │ │ ────────── │ │ │ ★ Favorites │ FileDropZone (large) │ │ ────────── │ or ClipboardSend panel │ │ [History] │ │ │ │ TransferProgress list │ │ │ │ └──────────────┴────────────
+
+
+
+
+you can design your sefl
+DeviceCard.tsx:
+Device icon based on type (Monitor / Smartphone / Globe)
+
+Device name (bold)
+
+IP address (muted, small)
+
+Online indicator (green pulse dot)
+
+Star button (filled if favorite)
+
+Selected state: accent color border + background tint
+
+Hover: slight scale up (1.02) with Framer Motion
+
+FileDropZone.tsx:
+Large dashed border area (center of main content)
+
+Icon + "Drop files or folders here"
+
+Sub-text: "or click to browse"
+
+On drag-over: border becomes accent color, background tints
+
+File list below drop zone:
+
+- File type icon (based on mime type) - Filename + size - For images: small thumbnail - Remove button (×)
+"Send to [Device Name]" button at bottom (disabled until device selected)
+
+TransferProgress.tsx:
+Card per active transfer
+
+Filename + total size
+
+Animated progress bar (accent color)
+
+Percentage + speed (e.g., "45% · 12.3 MB/s · ETA 8s")
+
+Cancel button
+
+On complete: green checkmark + "Open file" link
+
+ReceiveDialog.tsx:
+Slides in from bottom-right
+
+Sender avatar (icon) + device name
+
+File list with sizes
+
+Image thumbnails if applicable
+
+"Accept" (accent) + "Reject" (ghost) buttons
+
+Countdown timer bar (60 seconds)
+
+If quick_save=true: this dialog is SKIPPED
+
+SettingsMenu.tsx:
+Slide-in panel from right (not full page)
+
+3 tabs: General | Network | Appearance
+
+Each tab renders respective settings component
+
+Save button at bottom
+
+Changes apply immediately where possible
+
+HistoryList.tsx:
+Full page view (replaces main content)
+
+Search bar at top
+
+Filter tabs: All | Sent | Received
+
+Date group headers (Today, Yesterday, This Week, Older)
+
+Each entry: direction arrow + filename + device + time + size
+
+Hover: show "Open file" button
+
+Right-click context menu: Open file | Open folder | Delete entry
+
+ClipboardSend.tsx:
+Textarea (large, resizable)
+
+Character count bottom-right
+
+"Paste from clipboard" button
+
+"Send" button (disabled until text + device selected)
+
+Keyboard shortcut hint: Ctrl+Shift+C
+
+---
+i18n TRANSLATIONS
+en.json (English):
+{
+  "app": { "name": "SwiftShare" },
+  "devices": {
+    "title": "Devices",
+    "noDevices": "No devices found",
+    "searching": "Searching...",
+    "favorites": "Favorites"
+  },
+  "transfer": {
+    "dropFiles": "Drop files or folders here",
+    "browseFiles": "or click to browse",
+    "send": "Send to {{device}}",
+    "cancel": "Cancel",
+    "accept": "Accept",
+    "reject": "Reject",
+    "progress": "{{percent}}% · {{speed}} · ETA {{eta}}",
+    "complete": "Transfer complete",
+    "failed": "Transfer failed"
+  },
+  "clipboard": {
+    "title": "Clipboard",
+    "placeholder": "Type or paste text to send...",
+    "paste": "Paste from clipboard",
+    "send": "Send text",
+    "received": "Text received",
+    "copy": "Copy to clipboard"
+  },
+  "history": {
+    "title": "History",
+    "empty": "No transfer history",
+    "clear": "Clear history",
+    "sent": "Sent",
+    "received": "Received",
+    "search": "Search files or devices..."
+  },
+  "settings": {
+    "title": "Settings",
+    "general": "General",
+    "network": "Network",
+    "appearance": "Appearance",
+    "deviceName": "Device Name",
+    "savePath": "Save Path",
+    "quickSave": "Quick Save",
+    "quickSaveDesc": "Save files without confirmation",
+    "autoOpen": "Auto-open received files",
+    "language": "Language",
+    "theme": "Theme",
+    "dark": "Dark",
+    "light": "Light",
+    "system": "System",
+    "accentColor": "Accent Color",
+    "port": "Port",
+    "localIP": "Local IP",
+    "hidden": "Hide from network",
+    "save": "Save Settings"
+  }
+}
+
+bn.json (বাংলা):
+{
+  "app": { "name": "সুইফটশেয়ার" },
+  "devices": {
+    "title": "ডিভাইস",
+    "noDevices": "কোনো ডিভাইস পাওয়া যায়নি",
+    "searching": "খোঁজা হচ্ছে...",
+    "favorites": "প্রিয় ডিভাইস"
+  },
+  "transfer": {
+    "dropFiles": "এখানে ফাইল বা ফোল্ডার ড্রপ করুন",
+    "browseFiles": "অথবা ক্লিক করে বেছে নিন",
+    "send": "{{device}}-এ পাঠান",
+    "cancel": "বাতিল",
+    "accept": "গ্রহণ করুন",
+    "reject": "প্রত্যাখ্যান করুন",
+    "progress": "{{percent}}% · {{speed}} · বাকি {{eta}}",
+    "complete": "ট্রান্সফার সম্পন্ন",
+    "failed": "ট্রান্সফার ব্যর্থ"
+  },
+  "clipboard": {
+    "title": "ক্লিপবোর্ড",
+    "placeholder": "পাঠানোর জন্য টেক্সট লিখুন বা পেস্ট করুন...",
+    "paste": "ক্লিপবোর্ড থেকে পেস্ট করুন",
+    "send": "টেক্সট পাঠান",
+    "received": "টেক্সট পাওয়া গেছে",
+    "copy": "ক্লিপবোর্ডে কপি করুন"
+  },
+  "history": {
+    "title": "ইতিহাস",
+    "empty": "কোনো ট্রান্সফার ইতিহাস নেই",
+    "clear": "ইতিহাস মুছুন",
+    "sent": "পাঠানো",
+    "received": "পাওয়া",
+    "search": "ফাইল বা ডিভাইস খুঁজুন..."
+  },
+  "settings": {
+    "title": "সেটিংস",
+    "general": "সাধারণ",
+    "network": "নেটওয়ার্ক",
+    "appearance": "চেহারা",
+    "deviceName": "ডিভাইসের নাম",
+    "savePath": "সেভ পাথ",
+    "quickSave": "দ্রুত সেভ",
+    "quickSaveDesc": "নিশ্চিতকরণ ছাড়াই ফাইল সেভ করুন",
+    "autoOpen": "পাওয়া ফাইল স্বয়ংক্রিয়ভাবে খুলুন",
+    "language": "ভাষা",
+    "theme": "থিম",
+    "dark": "ডার্ক",
+    "light": "লাইট",
+    "system": "সিস্টেম",
+    "accentColor": "অ্যাকসেন্ট রঙ",
+    "port": "পোর্ট",
+    "localIP": "লোকাল আইপি",
+    "hidden": "নেটওয়ার্কে লুকান",
+    "save": "সেটিংস সেভ করুন"
+  }
+}
+
+---
+CARGO.toml
+[package]
+name = "swiftshare"
+version = "0.1.0"
+edition = "2021"
+﻿
+[dependencies]
+tauri = { version = "2", features = ["shell-open", "dialog"] }
+tokio = { version = "1", features = ["full"] }
+axum = { version = "0.7", features = ["multipart"] }
+axum-server = { version = "0.6", features = ["tls-rustls"] }
+reqwest = { version = "0.12", features = ["stream", "rustls-tls", "multipart"] }
+mdns-sd = "0.11"
+rustls = "0.23"
+rcgen = "0.13"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["v4"] }
+sha2 = "0.10"
+sled = "0.34"
+arboard = "3"
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+tokio-util = { version = "0.7", features = ["io"] }
+futures-util = "0.3"
+chrono = { version = "0.4", features = ["serde"] }
+local-ip-address = "0.6"
+﻿
+[dev-dependencies]
+tokio-test = "0.4"
+mockall = "0.12"
+
+---
+TESTS
+Rust Tests — write all of these:
+discovery_test.rs:
+testmdnsservice_registers → verify service name and port in mDNS
+
+testdevicediscovery → mock mDNS peer, verify it appears in device list
+
+testdevicetimeout → device not seen for 31s should be removed
+
+testdeviceinfo_fields → verify all required fields present
+
+server_test.rs:
+testserverstartsoncorrect_port
+
+testinfoendpointreturnsdevice_info
+
+testprepareuploadcreatessession
+
+testuploadsavesfileto_disk
+
+testquicksaveskipsconfirmation
+
+testclipboardendpointemitsevent
+
+testcancelendpointcancelssession
+
+sender_test.rs:
+testsendsinglefilesuccess
+
+testsendmultiple_files
+
+testsendprogresseventsemitted
+
+testsha256verificationaftersend
+
+testcancelmid_transfer
+
+testsendtoofflinedevicereturnserror
+
+clipboard_test.rs:
+testsendclipboard_text
+
+testreadsystem_clipboard
+
+testwritesystem_clipboard
+
+history_test.rs:
+testsavehistory_entry
+
+testgethistory_all
+
+testgethistorysentfilter
+
+testgethistoryreceivedfilter
+
+testclearhistory
+
+testdeletesingle_entry
+
+favorites_test.rs:
+testaddfavorite
+
+testremovefavorite
+
+testfavoritepersistsafterrestart
+
+testofflinefavoritestillshows
+
+Frontend Tests (Vitest + React Testing Library):
+DeviceCard.test.tsx → renders name/ip, star toggle, selection
+
+DeviceList.test.tsx → shows empty state, shows devices, shows favorites first
+
+FileDropZone.test.tsx → drag-drop events, file list, remove file
+
+ImagePreview.test.tsx → shows thumbnails for image files
+
+TransferProgress.test.tsx → shows percentage, speed, ETA, cancel button
+
+ReceiveDialog.test.tsx → shows sender info, accept/reject, countdown
+
+ClipboardSend.test.tsx → textarea, paste button, send button state
+
+HistoryList.test.tsx → renders entries, filter tabs, search, clear
+
+SettingsMenu.test.tsx → tabs work, fields editable, save triggers command
+
+---
+STRICT RULES — MUST FOLLOW
+NO placeholder comments like "// TODO" or "// implement later" — every function must be fully implemented
+
+NO unwrap() in production code — use ? operator or match with proper error handling
+
+ALL Tauri commands must be async and return Result
+
+ALL frontend components must handle: loading state, error state, empty state, success state
+
+ALL file operations must be streaming (no loading entire file into memory)
+
+Settings must persist between app restarts
+
+History and Favorites must persist between app restarts (Sled DB)
+
+Theme changes must apply instantly without page reload
+
+Language changes must apply instantly without page reload
+
+App must compile and run with: cargo tauri dev
+
+---
+GENERATION ORDER
+Generate files in this exact order:
+Cargo.toml
+
+package.json
+
+tailwind.config.js
+
+vite.config.ts
+
+src-tauri/src/models.rs
+
+src-tauri/src/crypto.rs
+
+src-tauri/src/settings.rs
+
+src-tauri/src/discovery.rs
+
+src-tauri/src/server.rs
+
+src-tauri/src/sender.rs
+
+src-tauri/src/clipboard.rs
+
+src-tauri/src/history.rs
+
+src-tauri/src/favorites.rs
+
+src-tauri/src/lib.rs
+
+src-tauri/src/main.rs
+
+src-tauri/tauri.conf.json
+
+src/types/index.ts
+
+src/i18n/en.json
+
+src/i18n/bn.json
+
+src/i18n/index.ts
+
+src/store/ (all 4 stores)
+
+src/hooks/ (all 6 hooks)
+
+src/utils/ (all 3 utils)
+
+src/components/ (all components, layout first)
+
+src/App.tsx
+
+src/main.tsx
+
+src/index.css
+
+All test files (Rust then frontend)
+
+Begin now. Generate every file completely.

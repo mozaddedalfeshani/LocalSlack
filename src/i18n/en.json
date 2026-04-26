@@ -1,0 +1,52 @@
+{
+  "app": { "name": "SwiftShare" },
+  "devices": { "title": "Devices", "noDevices": "No devices found", "searching": "Searching...", "favorites": "Favorites" },
+  "transfer": {
+    "dropFiles": "Drop files or folders here",
+    "browseFiles": "or click to browse",
+    "send": "Send to {{device}}",
+    "cancel": "Cancel",
+    "accept": "Accept",
+    "reject": "Reject",
+    "progress": "{{percent}}% · {{speed}} · ETA {{eta}}",
+    "complete": "Transfer complete",
+    "failed": "Transfer failed"
+  },
+  "clipboard": {
+    "title": "Clipboard",
+    "placeholder": "Type or paste text to send...",
+    "paste": "Paste from clipboard",
+    "send": "Send text",
+    "received": "Text received",
+    "copy": "Copy to clipboard"
+  },
+  "history": {
+    "title": "History",
+    "empty": "No transfer history",
+    "clear": "Clear history",
+    "sent": "Sent",
+    "received": "Received",
+    "search": "Search files or devices..."
+  },
+  "settings": {
+    "title": "Settings",
+    "general": "General",
+    "network": "Network",
+    "appearance": "Appearance",
+    "deviceName": "Device Name",
+    "savePath": "Save Path",
+    "quickSave": "Quick Save",
+    "quickSaveDesc": "Save files without confirmation",
+    "autoOpen": "Auto-open received files",
+    "language": "Language",
+    "theme": "Theme",
+    "dark": "Dark",
+    "light": "Light",
+    "system": "System",
+    "accentColor": "Accent Color",
+    "port": "Port",
+    "localIP": "Local IP",
+    "hidden": "Hide from network",
+    "save": "Save Settings"
+  }
+}

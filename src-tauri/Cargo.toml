@@ -1,0 +1,45 @@
+[package]
+name = "swiftshare"
+version = "0.1.0"
+description = "Local WiFi file sharing desktop app"
+edition = "2021"
+
+[lib]
+name = "swiftshare_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+anyhow = "1"
+arboard = "3"
+async-stream = "0.3"
+axum = { version = "0.7", features = ["multipart"] }
+bytes = "1"
+chrono = { version = "0.4", features = ["serde"] }
+dirs = "5"
+futures-util = "0.3"
+local-ip-address = "0.6"
+mdns-sd = "0.11"
+mime_guess = "2"
+open = "5"
+rcgen = "0.13"
+reqwest = { version = "0.12", default-features = false, features = ["stream", "rustls-tls", "multipart", "json"] }
+rustls = "0.23"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+sled = "0.34"
+tauri = { version = "2", features = [] }
+tokio = { version = "1", features = ["full"] }
+tokio-util = { version = "0.7", features = ["io"] }
+tower-http = { version = "0.5", features = ["cors"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+uuid = { version = "1", features = ["v4", "serde"] }
+
+[dev-dependencies]
+mockall = "0.12"
+tempfile = "3"
+tokio-test = "0.4"
