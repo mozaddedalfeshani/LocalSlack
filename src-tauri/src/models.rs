@@ -102,6 +102,8 @@ pub struct AppSettings {
     pub device_emoji: String,
     pub save_path: String,
     pub quick_save: bool,
+    #[serde(default = "default_quick_save_mode")]
+    pub quick_save_mode: String,
     pub auto_open: bool,
     pub language: String,
     pub port: u16,
@@ -113,6 +115,10 @@ pub struct AppSettings {
     pub start_minimized: bool,
     pub allowed_ips: Vec<String>,
     pub blocked_ips: Vec<String>,
+}
+
+fn default_quick_save_mode() -> String {
+    "off".to_string()
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]

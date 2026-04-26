@@ -6,7 +6,6 @@ import { useTransfer } from "./hooks/useTransfer";
 import { useUiStore } from "./store/uiStore";
 import { ClipboardReceive } from "./components/clipboard/ClipboardReceive";
 import { ClipboardSend } from "./components/clipboard/ClipboardSend";
-import { GroupShare } from "./components/group/GroupShare";
 import { HistoryList } from "./components/history/HistoryList";
 import { MainLayout } from "./components/layout/MainLayout";
 import { ReceiveHome } from "./components/receive/ReceiveHome";
@@ -27,29 +26,27 @@ export default function App() {
     else await favorites.add(device);
     devices.setDevices(await favorites.list().then(() => devices.devices.map((item) => item.id === device.id ? { ...item, isFavorite: !item.isFavorite } : item)));
   };
+  const setQuickSaveMode = (quickSaveMode: typeof settings.settings.quickSaveMode) => {
+    void settings.save({
+      ...settings.settings,
+      quickSaveMode,
+      quickSave: quickSaveMode === "on"
+    });
+  };
   const content = ui.view === "receive" ? (
-    <ReceiveHome deviceName={settings.settings.deviceName} emoji={settings.settings.deviceEmoji} />
+    <ReceiveHome
+      deviceName={settings.settings.deviceName}
+      emoji={settings.settings.deviceEmoji}
+      quickSaveMode={settings.settings.quickSave ? "on" : settings.settings.quickSaveMode}
+      onQuickSaveMode={setQuickSaveMode}
+      onHistory={() => ui.setView("history")}
+    />
   ) : ui.view === "history" ? (
     <HistoryList />
   ) : ui.view === "settings" ? (
     <SettingsPage />
   ) : ui.view === "clipboard" ? (
     <ClipboardSend selectedDevice={devices.selectedDevice} />
-  ) : ui.view === "group" ? (
-    <GroupShare
-      devices={devices.devices}
-      selectedDevice={devices.selectedDevice}
-      loading={devices.loading}
-      error={devices.error}
-      files={transfer.files}
-      progress={transfer.progress}
-      transferError={transfer.error}
-      onSelect={devices.selectDevice}
-      onFiles={transfer.addFiles}
-      onRemoveFile={transfer.removeFile}
-      onSend={() => devices.selectedDevice && transfer.send(devices.selectedDevice)}
-      onCancel={(id) => transfer.cancel(id)}
-    />
   ) : (
     <SendHome
       devices={devices.devices}

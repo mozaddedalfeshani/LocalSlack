@@ -1,6 +1,6 @@
 import type { AppSettings } from "../../types";
 
-const accents = ["indigo", "violet", "emerald", "rose", "amber", "sky"];
+const accents = ["coral", "indigo", "violet", "emerald", "rose", "amber", "sky"];
 
 export function AppearanceSettings({ settings, onChange }: { settings: AppSettings; onChange: (patch: Partial<AppSettings>) => void }) {
   return (

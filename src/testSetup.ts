@@ -9,6 +9,7 @@ vi.mock("@tauri-apps/api/core", () => ({
         deviceEmoji: "🚀",
         savePath: "",
         quickSave: false,
+        quickSaveMode: "off",
         autoOpen: false,
         language: "en",
         port: 53317,

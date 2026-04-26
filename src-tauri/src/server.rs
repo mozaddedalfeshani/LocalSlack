@@ -69,7 +69,8 @@ async fn prepare_upload(
         .await
         .insert(session_id.clone(), files.clone());
     let settings = state.settings.get().await;
-    if !settings.quick_save {
+    let accepted = settings.quick_save || settings.quick_save_mode == "on";
+    if !accepted {
         let _ = state
             .app
             .emit("incoming-request", (session_id.clone(), files));
@@ -77,7 +78,7 @@ async fn prepare_upload(
     Json(PrepareUploadResponse {
         session_id,
         token: Uuid::new_v4().to_string(),
-        accepted: settings.quick_save,
+        accepted,
     })
 }
 

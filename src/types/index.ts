@@ -54,6 +54,7 @@ export interface AppSettings {
   deviceEmoji: string;
   savePath: string;
   quickSave: boolean;
+  quickSaveMode: "off" | "favorites" | "on";
   autoOpen: boolean;
   language: string;
   port: number;

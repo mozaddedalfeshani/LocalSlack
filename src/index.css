@@ -3,31 +3,31 @@
 @tailwind utilities;
 
 :root {
-  --bg-primary: 9 19 15;
-  --bg-secondary: 16 32 27;
-  --bg-surface: 18 38 32;
-  --bg-elevated: 45 76 67;
-  --border: 49 80 72;
-  --text-primary: 232 241 238;
-  --text-secondary: 190 207 201;
-  --text-muted: 132 154 147;
-  --accent: 128 216 202;
-  --accent-hover: 106 196 182;
-  --success: 128 216 202;
+  --bg-primary: 13 18 20;
+  --bg-secondary: 18 27 28;
+  --bg-surface: 22 34 35;
+  --bg-elevated: 32 47 48;
+  --border: 48 64 64;
+  --text-primary: 236 241 239;
+  --text-secondary: 190 204 199;
+  --text-muted: 128 148 142;
+  --accent: 255 122 144;
+  --accent-hover: 255 96 123;
+  --success: 89 213 171;
   --warning: 245 158 11;
   --error: 239 68 68;
   color-scheme: dark;
 }
 
 :root[data-theme="light"] {
-  --bg-primary: 255 255 255;
-  --bg-secondary: 248 248 248;
-  --bg-surface: 240 240 240;
-  --bg-elevated: 232 232 232;
-  --border: 224 224 224;
-  --text-primary: 10 10 10;
-  --text-secondary: 80 80 80;
-  --text-muted: 144 144 144;
+  --bg-primary: 250 250 248;
+  --bg-secondary: 244 246 244;
+  --bg-surface: 255 255 253;
+  --bg-elevated: 238 242 239;
+  --border: 218 226 222;
+  --text-primary: 22 29 30;
+  --text-secondary: 77 94 91;
+  --text-muted: 132 148 143;
   color-scheme: light;
 }
 
@@ -38,40 +38,40 @@ button, input, textarea, select { font: inherit; }
 button:disabled { cursor: not-allowed; opacity: 0.45; }
 
 @layer components {
-  .icon-button { @apply inline-grid h-9 w-9 place-items-center rounded-lg border border-border bg-bg-surface text-text-secondary transition hover:border-accent hover:text-text-primary; }
-  .primary-button { @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-full bg-accent px-5 py-2 text-sm font-bold text-[#08201a] transition hover:bg-accent-hover; }
-  .secondary-button { @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-border bg-bg-surface px-4 py-2 text-sm font-semibold text-text-secondary transition hover:border-accent hover:text-text-primary; }
+  .icon-button { @apply inline-grid h-9 w-9 place-items-center rounded-md border border-border/70 bg-bg-surface text-text-secondary transition hover:border-accent hover:text-text-primary; }
+  .primary-button { @apply inline-flex min-h-9 items-center justify-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-[#241014] transition hover:bg-accent-hover; }
+  .secondary-button { @apply inline-flex min-h-9 items-center justify-center gap-2 rounded-md border border-border/80 bg-bg-surface px-4 py-2 text-sm font-medium text-text-secondary transition hover:border-accent hover:text-text-primary; }
   .secondary-button.selected, .nav-button.active { @apply border-accent bg-accent/10 text-text-primary; }
-  .nav-button { @apply inline-flex min-h-10 items-center justify-center gap-1 rounded-md border border-border bg-bg-surface px-2 text-xs text-text-secondary transition hover:border-accent; }
-  .input { @apply w-full rounded-md border border-border bg-bg-surface px-3 py-2 text-text-primary outline-none transition focus:border-accent; }
+  .nav-button { @apply inline-flex min-h-9 items-center justify-center gap-1 rounded-md border border-border/80 bg-bg-surface px-2 text-xs text-text-secondary transition hover:border-accent; }
+  .input { @apply w-full rounded-md border border-border/80 bg-bg-surface px-3 py-2 text-text-primary outline-none transition focus:border-accent; }
   .settings-grid { @apply grid gap-4; }
   .settings-grid label { @apply grid gap-2 text-sm font-medium text-text-secondary; }
-  .toggle { @apply flex items-center gap-3 rounded-md bg-bg-surface p-3; }
-  .rail-button { @apply flex h-11 w-full items-center gap-3 rounded-full px-3 text-sm font-bold text-[#dce9e4] transition hover:bg-[#29483f]; }
-  .rail-button.active .rail-icon { @apply bg-[#31574d] text-white; }
-  .rail-icon { @apply grid h-10 w-14 place-items-center rounded-full text-[#dce9e4]; }
-  .selection-tile { @apply flex h-16 flex-col items-center justify-center gap-1 rounded-lg bg-[#315048] text-sm font-bold text-[#dce9e4] transition hover:bg-[#3d6258] hover:text-white; }
-  .plain-icon-button { @apply text-[#e1eee9] transition hover:text-[#80d8ca]; }
-  .soft-icon-button { @apply grid h-10 w-10 place-items-center rounded-full text-[#e1eee9] transition hover:bg-[#14251f] hover:text-[#80d8ca]; }
-  .quick-save-segment { @apply min-w-20 px-5 py-1.5 text-[#e8f1ee] transition hover:bg-[#315048]; }
-  .quick-save-segment.active { @apply bg-[#3b5c53]; }
-  .send-drop-panel { @apply rounded-lg border border-[#1c332c] bg-[#0e1d18] p-4; }
-  .device-skeleton { @apply h-20 rounded-lg bg-[#1a312a] opacity-80; }
-  .emoji-choice { @apply grid h-11 w-11 place-items-center rounded-lg border border-border bg-bg-surface text-xl transition hover:border-accent hover:bg-bg-elevated; }
+  .toggle { @apply flex items-center gap-3 rounded-md border border-border/50 bg-bg-surface p-3; }
+  .rail-button { @apply flex h-10 w-full items-center gap-3 rounded-md px-4 text-sm font-medium text-text-secondary transition hover:bg-bg-elevated hover:text-text-primary; }
+  .rail-button.active { @apply bg-bg-elevated text-text-primary; }
+  .rail-icon { @apply grid h-8 w-8 place-items-center text-current; }
+  .selection-tile { @apply flex h-16 flex-col items-center justify-center gap-1 rounded-md border border-border/40 bg-bg-elevated/75 text-sm font-semibold text-text-primary transition hover:border-accent hover:bg-bg-elevated; }
+  .plain-icon-button { @apply text-text-primary transition hover:text-accent; }
+  .soft-icon-button { @apply grid h-10 w-10 place-items-center rounded-full text-text-primary transition hover:bg-bg-elevated hover:text-accent; }
+  .quick-save-segment { @apply min-w-20 px-5 py-1.5 text-text-secondary transition hover:bg-bg-elevated hover:text-text-primary; }
+  .quick-save-segment.active { @apply bg-accent text-[#241014]; }
+  .send-drop-panel { @apply rounded-md border border-border/60 bg-bg-surface p-4; }
+  .device-skeleton { @apply h-20 rounded-md bg-bg-elevated opacity-70; }
+  .emoji-choice { @apply grid h-11 w-11 place-items-center rounded-md border border-border bg-bg-surface text-xl transition hover:border-accent hover:bg-bg-elevated; }
   .emoji-choice.selected { @apply border-accent bg-accent/15; }
-  .office-panel { @apply rounded-2xl border border-[#1d332d] bg-[#0f1d18] shadow-[0_18px_60px_rgba(0,0,0,0.18)]; }
-  .office-action { @apply flex h-24 flex-col items-center justify-center gap-2 rounded-2xl border border-[#244238] bg-[#162922] text-sm font-extrabold text-[#dce9e4] transition hover:-translate-y-0.5 hover:border-[#80d8ca] hover:bg-[#203b32]; }
-  .group-card { @apply flex w-full items-center gap-3 rounded-xl border border-transparent bg-[#142720] p-3 transition hover:border-[#426b60] hover:bg-[#1a332b]; }
-  .group-card.selected { @apply border-[#80d8ca] bg-[#1d3a31]; }
-  .recipient-row { @apply flex w-full items-center gap-3 rounded-xl border border-transparent bg-[#142720] p-3 transition hover:border-[#426b60] hover:bg-[#1a332b]; }
-  .recipient-row.selected { @apply border-[#80d8ca] bg-[#1d3a31]; }
-  .receive-stat { @apply flex flex-col items-center gap-2 rounded-2xl border border-[#244238] bg-[#12231d] p-4 text-sm font-bold text-[#cfe1dc]; }
-  .receive-stat svg { @apply text-[#80d8ca]; }
-  .receive-metric { @apply flex items-center gap-3 rounded-xl bg-[#142720] p-3 text-sm font-semibold text-[#cfe1dc]; }
-  .receive-metric svg { @apply text-[#80d8ca]; }
-  .settings-card { @apply rounded-xl bg-[#101d18] p-5; }
-  .settings-tab { @apply rounded-full px-4 py-2 text-sm font-bold text-[#9cb0aa] transition hover:bg-[#172922] hover:text-[#e4efeb]; }
-  .settings-tab.active { @apply bg-[#31574d] text-white; }
+  .office-panel { @apply rounded-md border border-border/60 bg-bg-surface shadow-[0_18px_55px_rgba(0,0,0,0.16)]; }
+  .office-action { @apply flex h-24 flex-col items-center justify-center gap-2 rounded-md border border-border/70 bg-bg-surface text-sm font-semibold text-text-primary transition hover:-translate-y-0.5 hover:border-accent hover:bg-bg-elevated; }
+  .group-card { @apply flex w-full items-center gap-3 rounded-md border border-transparent bg-bg-surface p-3 transition hover:border-accent/60 hover:bg-bg-elevated; }
+  .group-card.selected { @apply border-accent bg-accent/10; }
+  .recipient-row { @apply flex w-full items-center gap-3 rounded-md border border-transparent bg-bg-surface p-3 transition hover:border-accent/60 hover:bg-bg-elevated; }
+  .recipient-row.selected { @apply border-accent bg-accent/10; }
+  .receive-stat { @apply flex flex-col items-center gap-2 rounded-md border border-border bg-bg-surface p-4 text-sm font-semibold text-text-secondary; }
+  .receive-stat svg { @apply text-accent; }
+  .receive-metric { @apply flex items-center gap-3 rounded-md bg-bg-surface p-3 text-sm font-medium text-text-secondary; }
+  .receive-metric svg { @apply text-accent; }
+  .settings-card { @apply rounded-md border border-border/50 bg-bg-surface p-5; }
+  .settings-tab { @apply rounded-md px-4 py-2 text-sm font-medium text-text-muted transition hover:bg-bg-elevated hover:text-text-primary; }
+  .settings-tab.active { @apply bg-accent text-[#241014]; }
 }
 
 .device-skeleton::before {
@@ -91,7 +91,7 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   width: 152px;
   height: 152px;
   border-radius: 999px;
-  background: conic-gradient(from 8deg, #80d8ca 0 28deg, transparent 28deg 58deg, #80d8ca 58deg 88deg, transparent 88deg 118deg, #80d8ca 118deg 148deg, transparent 148deg 178deg, #80d8ca 178deg 208deg, transparent 208deg 238deg, #80d8ca 238deg 268deg, transparent 268deg 298deg, #80d8ca 298deg 328deg, transparent 328deg 360deg);
+  background: conic-gradient(from 8deg, rgb(var(--accent)) 0 28deg, transparent 28deg 58deg, rgb(var(--accent)) 58deg 88deg, transparent 88deg 118deg, rgb(var(--accent)) 118deg 148deg, transparent 148deg 178deg, rgb(var(--accent)) 178deg 208deg, transparent 208deg 238deg, rgb(var(--accent)) 238deg 268deg, transparent 268deg 298deg, rgb(var(--accent)) 298deg 328deg, transparent 328deg 360deg);
   animation: orbit-spin 12s linear infinite;
 }
 
@@ -100,7 +100,7 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   position: absolute;
   inset: 28px;
   border-radius: 999px;
-  background: #09130f;
+  background: rgb(var(--bg-primary));
 }
 
 .receive-core {
@@ -108,7 +108,7 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   inset: 42px;
   z-index: 1;
   border-radius: 999px;
-  background: #80d8ca;
+  background: rgb(var(--accent));
   display: grid;
   place-items: center;
   font-size: 42px;
@@ -120,6 +120,7 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 }
 
 [data-accent="indigo"] { background: #6366f1; }
+[data-accent="coral"] { background: #ff7a90; }
 [data-accent="violet"] { background: #8b5cf6; }
 [data-accent="emerald"] { background: #10b981; }
 [data-accent="rose"] { background: #f43f5e; }

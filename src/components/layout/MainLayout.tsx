@@ -9,8 +9,8 @@ interface Props {
   selected?: DeviceInfo;
   loading?: boolean;
   error?: string;
-  view: "receive" | "send" | "group" | "clipboard" | "history" | "settings";
-  onView: (view: "receive" | "send" | "group" | "clipboard" | "history" | "settings") => void;
+  view: "receive" | "send" | "clipboard" | "history" | "settings";
+  onView: (view: "receive" | "send" | "clipboard" | "history" | "settings") => void;
   onSelect: (device: DeviceInfo) => void;
   onToggleFavorite: (device: DeviceInfo) => void;
   onSettings: () => void;
@@ -18,9 +18,9 @@ interface Props {
 
 export function MainLayout(props: Props) {
   return (
-    <div className="flex h-screen overflow-hidden bg-[#09130f] text-[#e8f1ee]">
+    <div className="flex h-screen overflow-hidden bg-bg-primary text-text-primary">
       <Sidebar {...props} />
-      <main className="min-w-0 flex-1 overflow-auto bg-[#09130f] px-9 py-8">{props.children}</main>
+      <main className="min-w-0 flex-1 overflow-auto bg-bg-primary px-9 py-8">{props.children}</main>
     </div>
   );
 }
