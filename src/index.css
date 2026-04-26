@@ -59,6 +59,16 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   .device-skeleton { @apply h-20 rounded-lg bg-[#1a312a] opacity-80; }
   .emoji-choice { @apply grid h-11 w-11 place-items-center rounded-lg border border-border bg-bg-surface text-xl transition hover:border-accent hover:bg-bg-elevated; }
   .emoji-choice.selected { @apply border-accent bg-accent/15; }
+  .office-panel { @apply rounded-2xl border border-[#1d332d] bg-[#0f1d18] shadow-[0_18px_60px_rgba(0,0,0,0.18)]; }
+  .office-action { @apply flex h-24 flex-col items-center justify-center gap-2 rounded-2xl border border-[#244238] bg-[#162922] text-sm font-extrabold text-[#dce9e4] transition hover:-translate-y-0.5 hover:border-[#80d8ca] hover:bg-[#203b32]; }
+  .group-card { @apply flex w-full items-center gap-3 rounded-xl border border-transparent bg-[#142720] p-3 transition hover:border-[#426b60] hover:bg-[#1a332b]; }
+  .group-card.selected { @apply border-[#80d8ca] bg-[#1d3a31]; }
+  .recipient-row { @apply flex w-full items-center gap-3 rounded-xl border border-transparent bg-[#142720] p-3 transition hover:border-[#426b60] hover:bg-[#1a332b]; }
+  .recipient-row.selected { @apply border-[#80d8ca] bg-[#1d3a31]; }
+  .receive-stat { @apply flex flex-col items-center gap-2 rounded-2xl border border-[#244238] bg-[#12231d] p-4 text-sm font-bold text-[#cfe1dc]; }
+  .receive-stat svg { @apply text-[#80d8ca]; }
+  .receive-metric { @apply flex items-center gap-3 rounded-xl bg-[#142720] p-3 text-sm font-semibold text-[#cfe1dc]; }
+  .receive-metric svg { @apply text-[#80d8ca]; }
 }
 
 .device-skeleton::before {

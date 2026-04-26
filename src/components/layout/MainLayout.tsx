@@ -9,8 +9,8 @@ interface Props {
   selected?: DeviceInfo;
   loading?: boolean;
   error?: string;
-  view: "receive" | "send" | "clipboard" | "history";
-  onView: (view: "receive" | "send" | "clipboard" | "history") => void;
+  view: "receive" | "send" | "group" | "clipboard" | "history";
+  onView: (view: "receive" | "send" | "group" | "clipboard" | "history") => void;
   onSelect: (device: DeviceInfo) => void;
   onToggleFavorite: (device: DeviceInfo) => void;
   onSettings: () => void;

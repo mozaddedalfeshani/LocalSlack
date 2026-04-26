@@ -6,6 +6,7 @@ import { useTransfer } from "./hooks/useTransfer";
 import { useUiStore } from "./store/uiStore";
 import { ClipboardReceive } from "./components/clipboard/ClipboardReceive";
 import { ClipboardSend } from "./components/clipboard/ClipboardSend";
+import { GroupShare } from "./components/group/GroupShare";
 import { HistoryList } from "./components/history/HistoryList";
 import { MainLayout } from "./components/layout/MainLayout";
 import { ReceiveHome } from "./components/receive/ReceiveHome";
@@ -32,6 +33,21 @@ export default function App() {
     <HistoryList />
   ) : ui.view === "clipboard" ? (
     <ClipboardSend selectedDevice={devices.selectedDevice} />
+  ) : ui.view === "group" ? (
+    <GroupShare
+      devices={devices.devices}
+      selectedDevice={devices.selectedDevice}
+      loading={devices.loading}
+      error={devices.error}
+      files={transfer.files}
+      progress={transfer.progress}
+      transferError={transfer.error}
+      onSelect={devices.selectDevice}
+      onFiles={transfer.addFiles}
+      onRemoveFile={transfer.removeFile}
+      onSend={() => devices.selectedDevice && transfer.send(devices.selectedDevice)}
+      onCancel={(id) => transfer.cancel(id)}
+    />
   ) : (
     <SendHome
       devices={devices.devices}
@@ -48,7 +64,6 @@ export default function App() {
       onSend={() => devices.selectedDevice && transfer.send(devices.selectedDevice)}
       onCancel={(id) => transfer.cancel(id)}
       onClipboard={() => ui.setView("clipboard")}
-      onSettings={() => ui.setSettingsOpen(true)}
     />
   );
   return (

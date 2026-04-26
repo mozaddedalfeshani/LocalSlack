@@ -1,4 +1,4 @@
-import { Radio, Send, Settings, Wifi } from "lucide-react";
+import { Radio, Send, Settings, Users, Wifi } from "lucide-react";
 import type { DeviceInfo } from "../../types";
 
 interface Props {
@@ -7,7 +7,7 @@ interface Props {
   loading?: boolean;
   error?: string;
   view: string;
-  onView: (view: "receive" | "send" | "clipboard" | "history") => void;
+  onView: (view: "receive" | "send" | "group" | "clipboard" | "history") => void;
   onSelect: (device: DeviceInfo) => void;
   onToggleFavorite: (device: DeviceInfo) => void;
   onSettings: () => void;
@@ -17,6 +17,7 @@ export function Sidebar(props: Props) {
   const items = [
     { id: "receive" as const, label: "Receive", icon: Wifi },
     { id: "send" as const, label: "Send", icon: Send },
+    { id: "group" as const, label: "Group Share", icon: Users },
     { id: "history" as const, label: "History", icon: Radio }
   ];
   return (

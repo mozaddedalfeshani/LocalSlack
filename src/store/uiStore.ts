@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-type MainView = "receive" | "send" | "clipboard" | "history";
+type MainView = "receive" | "send" | "group" | "clipboard" | "history";
 
 interface UiStore {
   view: MainView;
