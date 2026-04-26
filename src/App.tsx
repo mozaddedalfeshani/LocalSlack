@@ -60,6 +60,8 @@ export default function App() {
       onSelect={devices.selectDevice}
       onToggleFavorite={toggleFavorite}
       onFiles={transfer.addFiles}
+      onPickFiles={() => transfer.pick("files")}
+      onPickFolder={() => transfer.pick("folder")}
       onRemoveFile={transfer.removeFile}
       onSend={() => devices.selectedDevice && transfer.send(devices.selectedDevice)}
       onCancel={(id) => transfer.cancel(id)}

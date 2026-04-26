@@ -12,12 +12,18 @@ use anyhow::Context;
 use discovery::DiscoveryState;
 use favorites::FavoritesStore;
 use history::HistoryStore;
-use models::{AppSettings, DeviceInfo, HistoryEntry};
+use models::{AppSettings, DeviceInfo, HistoryEntry, PathEntry};
 use sender::TransferCanceller;
 use settings::SettingsStore;
-use std::{collections::HashMap, path::PathBuf, sync::Arc};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+    process::Command,
+    sync::Arc,
+};
 use tauri::{Manager, State};
 use tokio::sync::RwLock;
+use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -180,6 +186,109 @@ async fn get_local_ip() -> Result<Vec<String>, String> {
     Ok(discovery::local_ips())
 }
 
+#[tauri::command]
+async fn get_path_entries(paths: Vec<String>) -> Result<Vec<PathEntry>, String> {
+    tauri::async_runtime::spawn_blocking(move || path_entries(paths))
+        .await
+        .map_err(|error| error.to_string())?
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+async fn pick_paths(kind: String) -> Result<Vec<String>, String> {
+    tauri::async_runtime::spawn_blocking(move || pick_paths_blocking(&kind))
+        .await
+        .map_err(|error| error.to_string())?
+        .map_err(|error| error.to_string())
+}
+
+fn path_entries(paths: Vec<String>) -> anyhow::Result<Vec<PathEntry>> {
+    let mut files = Vec::new();
+    for path in paths {
+        collect_files(PathBuf::from(path), &mut files)?;
+    }
+    files.sort_by(|a, b| a.path.cmp(&b.path));
+    Ok(files)
+}
+
+fn collect_files(path: PathBuf, files: &mut Vec<PathEntry>) -> anyhow::Result<()> {
+    if path.is_file() {
+        let metadata = std::fs::metadata(&path)?;
+        let name = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("file")
+            .to_string();
+        files.push(PathEntry {
+            id: Uuid::new_v4().to_string(),
+            name,
+            size: metadata.len(),
+            mime_type: mime_guess::from_path(&path)
+                .first_or_octet_stream()
+                .essence_str()
+                .to_string(),
+            path: path.to_string_lossy().to_string(),
+        });
+    } else if path.is_dir() {
+        for entry in std::fs::read_dir(path)? {
+            collect_files(entry?.path(), files)?;
+        }
+    }
+    Ok(())
+}
+
+fn pick_paths_blocking(kind: &str) -> anyhow::Result<Vec<String>> {
+    #[cfg(target_os = "macos")]
+    return pick_paths_macos(kind);
+
+    #[cfg(target_os = "linux")]
+    return pick_paths_linux(kind);
+
+    #[cfg(not(any(target_os = "macos", target_os = "linux")))]
+    anyhow::bail!("native file picker is not available on this platform")
+}
+
+#[cfg(target_os = "macos")]
+fn pick_paths_macos(kind: &str) -> anyhow::Result<Vec<String>> {
+    let target = if kind == "folder" { "folder" } else { "file" };
+    let script = format!(
+        r#"set chosenItems to choose {target} with multiple selections allowed
+set output to ""
+repeat with itemRef in chosenItems
+  set output to output & POSIX path of itemRef & linefeed
+end repeat
+return output"#
+    );
+    run_picker_command(Command::new("osascript").arg("-e").arg(script))
+}
+
+#[cfg(target_os = "linux")]
+fn pick_paths_linux(kind: &str) -> anyhow::Result<Vec<String>> {
+    let mut zenity = Command::new("zenity");
+    zenity
+        .arg("--file-selection")
+        .arg("--multiple")
+        .arg("--separator=\n");
+    if kind == "folder" {
+        zenity.arg("--directory");
+    }
+    run_picker_command(&mut zenity)
+}
+
+fn run_picker_command(command: &mut Command) -> anyhow::Result<Vec<String>> {
+    let output = command.output()?;
+    if !output.status.success() {
+        return Ok(Vec::new());
+    }
+    Ok(String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .map(str::trim)
+        .filter(|path| !path.is_empty())
+        .filter(|path| Path::new(path).exists())
+        .map(ToString::to_string)
+        .collect())
+}
+
 pub fn run() {
     tracing_subscriber::fmt().with_target(false).init();
     tauri::Builder::default()
@@ -240,7 +349,9 @@ pub fn run() {
             save_settings,
             open_file,
             open_folder,
-            get_local_ip
+            get_local_ip,
+            get_path_entries,
+            pick_paths
         ])
         .run(tauri::generate_context!())
         .expect("failed to run SwiftShare");

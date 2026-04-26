@@ -34,6 +34,16 @@ pub struct FileMetadata {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
+pub struct PathEntry {
+    pub id: String,
+    pub name: String,
+    pub size: u64,
+    pub mime_type: String,
+    pub path: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub enum TransferStatus {
     Pending,
     Accepted,

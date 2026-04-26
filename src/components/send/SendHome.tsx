@@ -15,6 +15,8 @@ interface Props {
   onSelect: (device: DeviceInfo) => void;
   onToggleFavorite: (device: DeviceInfo) => void;
   onFiles: (files: SelectedFile[]) => void;
+  onPickFiles: () => void;
+  onPickFolder: () => void;
   onRemoveFile: (id: string) => void;
   onSend: () => void;
   onCancel: (sessionId: string) => void;
@@ -23,14 +25,14 @@ interface Props {
 
 export function SendHome(props: Props) {
   return (
-    <section className="mx-auto max-w-[550px] py-12">
+    <section className="w-full py-6">
       <h2 className="mb-4 text-lg font-bold text-[#dce8e4]">Selection</h2>
       <div className="mb-7 grid grid-cols-4 gap-3">
-        <button className="selection-tile" type="button">
+        <button className="selection-tile" type="button" onClick={props.onPickFiles}>
           <FileText size={30} strokeWidth={2.8} />
           <span>File</span>
         </button>
-        <button className="selection-tile" type="button">
+        <button className="selection-tile" type="button" onClick={props.onPickFolder}>
           <Folder size={31} strokeWidth={2.8} />
           <span>Folder</span>
         </button>
@@ -44,12 +46,14 @@ export function SendHome(props: Props) {
         </button>
       </div>
 
-      <div className="send-drop-panel mb-7">
+      <div className="mb-7">
         <FileDropZone
           files={props.files}
           selectedDevice={props.selectedDevice}
           error={props.transferError}
           onFiles={props.onFiles}
+          onPickFiles={props.onPickFiles}
+          onPickFolder={props.onPickFolder}
           onRemove={props.onRemoveFile}
           onSend={props.onSend}
         />
@@ -59,7 +63,7 @@ export function SendHome(props: Props) {
         <h2 className="text-lg font-bold text-[#dce8e4]">Nearby devices</h2>
         <p className="text-sm text-[#8fa59f]">{props.devices.length} found</p>
       </div>
-      <div className="rounded-lg bg-[#122620] p-5">
+      <div>
         {props.loading && <div className="device-skeleton" />}
         {props.error && <p className="text-sm text-error">{props.error}</p>}
         {!props.loading && !props.error && props.devices.length === 0 && (

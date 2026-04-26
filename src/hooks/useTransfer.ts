@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { useEffect } from "react";
 import { useTransferStore } from "../store/transferStore";
 import type { DeviceInfo, TransferProgress } from "../types";
+import { pickDesktopFiles } from "../utils/fileUtils";
 
 export function useTransfer() {
   const store = useTransferStore();
@@ -22,6 +23,15 @@ export function useTransfer() {
     await invoke("send_files", { target, filePaths: paths });
     store.setSuccess("Transfer started");
   };
+  const pick = async (kind: "files" | "folder") => {
+    store.setError(undefined);
+    try {
+      const files = await pickDesktopFiles(kind);
+      if (files.length > 0) store.addFiles(files);
+    } catch (error) {
+      store.setError(String(error));
+    }
+  };
   const cancel = async (sessionId: string) => invoke("cancel_transfer", { sessionId });
-  return { ...store, send, cancel };
+  return { ...store, send, cancel, pick };
 }

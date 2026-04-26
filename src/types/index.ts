@@ -68,9 +68,24 @@ export interface AppSettings {
   blockedIps: string[];
 }
 
+export interface FileLike {
+  name: string;
+  size: number;
+  type: string;
+  lastModified?: number;
+}
+
+export interface PathEntry {
+  id: string;
+  name: string;
+  size: number;
+  mimeType: string;
+  path: string;
+}
+
 export interface SelectedFile {
   id: string;
-  file: File;
-  path?: string;
+  file: FileLike;
+  path: string;
   previewUrl?: string;
 }
