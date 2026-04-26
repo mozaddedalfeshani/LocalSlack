@@ -7,7 +7,7 @@ export function DeviceAvatar({ device }: { device: DeviceInfo }) {
   const Icon = type === "mobile" ? Smartphone : type === "web" ? Globe : Monitor;
   return (
     <div className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-[#2c4a42] text-[#8addd0]">
-      <Icon size={22} strokeWidth={2.8} />
+      {device.emoji ? <span className="text-2xl">{device.emoji}</span> : <Icon size={22} strokeWidth={2.8} />}
     </div>
   );
 }

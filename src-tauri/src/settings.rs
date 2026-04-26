@@ -1,6 +1,11 @@
 use crate::models::AppSettings;
 use anyhow::{Context, Result};
-use std::{fs, path::PathBuf, sync::Arc};
+use std::{
+    fs,
+    path::PathBuf,
+    sync::Arc,
+    time::{SystemTime, UNIX_EPOCH},
+};
 use tokio::sync::RwLock;
 
 #[derive(Clone)]
@@ -56,7 +61,8 @@ pub fn default_settings() -> AppSettings {
         .or_else(dirs::home_dir)
         .unwrap_or_else(std::env::temp_dir);
     AppSettings {
-        device_name: hostname(),
+        device_name: generate_cute_name(),
+        device_emoji: generate_device_emoji(),
         save_path: save_base.join("SwiftShare").to_string_lossy().to_string(),
         quick_save: false,
         auto_open: false,
@@ -77,4 +83,38 @@ fn hostname() -> String {
     std::env::var("HOSTNAME")
         .or_else(|_| std::env::var("COMPUTERNAME"))
         .unwrap_or_else(|_| "SwiftShare Device".to_string())
+}
+
+pub fn generate_cute_name() -> String {
+    const ADJECTIVES: &[&str] = &[
+        "Bright", "Calm", "Clever", "Cozy", "Fast", "Gentle", "Happy", "Kind", "Lucky",
+        "Mighty", "Neat", "Quiet", "Rapid", "Shiny", "Sunny", "Swift",
+    ];
+    const NOUNS: &[&str] = &[
+        "Apple", "Berry", "Cloud", "Comet", "Daisy", "Falcon", "Mango", "Moon", "Nova",
+        "Pear", "Pixel", "River", "Rocket", "Star", "Stone", "Wave",
+    ];
+    let seed = identity_seed();
+    let adjective = ADJECTIVES[seed % ADJECTIVES.len()];
+    let noun = NOUNS[(seed / ADJECTIVES.len()).max(1) % NOUNS.len()];
+    format!("{adjective} {noun}")
+}
+
+pub fn generate_device_emoji() -> String {
+    const EMOJIS: &[&str] = &[
+        "🌙", "⭐", "🚀", "🍐", "🍋", "🍉", "🫐", "🌿", "🔥", "💎", "🎧", "📡", "🧭",
+        "⚡", "🪄", "🌊",
+    ];
+    EMOJIS[identity_seed() % EMOJIS.len()].to_string()
+}
+
+fn identity_seed() -> usize {
+    let time_seed = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_nanos() as usize)
+        .unwrap_or(0);
+    let host_seed = hostname()
+        .bytes()
+        .fold(0usize, |acc, byte| acc.wrapping_mul(31).wrapping_add(byte as usize));
+    time_seed ^ host_seed
 }

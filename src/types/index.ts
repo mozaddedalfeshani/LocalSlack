@@ -3,6 +3,7 @@ export type DeviceType = "desktop" | "mobile" | "web" | "Desktop" | "Mobile" | "
 export interface DeviceInfo {
   id: string;
   name: string;
+  emoji?: string;
   ip: string;
   port: number;
   deviceType: DeviceType;
@@ -50,6 +51,7 @@ export interface ClipboardPayload {
 
 export interface AppSettings {
   deviceName: string;
+  deviceEmoji: string;
   savePath: string;
   quickSave: boolean;
   autoOpen: boolean;

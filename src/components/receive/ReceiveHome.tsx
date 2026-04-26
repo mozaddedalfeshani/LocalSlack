@@ -1,6 +1,6 @@
 import { Info, RotateCcw } from "lucide-react";
 
-export function ReceiveHome({ deviceName }: { deviceName: string }) {
+export function ReceiveHome({ deviceName, emoji }: { deviceName: string; emoji?: string }) {
   return (
     <section className="relative flex min-h-full flex-col items-center justify-center text-center">
       <div className="absolute right-0 top-0 flex gap-4">
@@ -14,7 +14,7 @@ export function ReceiveHome({ deviceName }: { deviceName: string }) {
 
       <div className="mb-8 grid h-40 w-40 place-items-center rounded-full">
         <div className="receive-orbit">
-          <div className="receive-core" />
+          <div className="receive-core">{emoji || "🚀"}</div>
         </div>
       </div>
       <h2 className="text-5xl font-light tracking-wide text-[#e6efec]">{deviceName || "SwiftShare Device"}</h2>

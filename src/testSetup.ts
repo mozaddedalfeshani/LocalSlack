@@ -6,6 +6,7 @@ vi.mock("@tauri-apps/api/core", () => ({
     if (command === "get_settings") {
       return Promise.resolve({
         deviceName: "SwiftShare Device",
+        deviceEmoji: "🚀",
         savePath: "",
         quickSave: false,
         autoOpen: false,

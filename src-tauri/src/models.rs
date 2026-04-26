@@ -13,6 +13,7 @@ pub enum DeviceType {
 pub struct DeviceInfo {
     pub id: String,
     pub name: String,
+    pub emoji: String,
     pub ip: String,
     pub port: u16,
     pub device_type: DeviceType,
@@ -96,6 +97,7 @@ pub struct ClipboardPayload {
 #[serde(rename_all = "camelCase")]
 pub struct AppSettings {
     pub device_name: String,
+    pub device_emoji: String,
     pub save_path: String,
     pub quick_save: bool,
     pub auto_open: bool,

@@ -36,6 +36,7 @@ impl DiscoveryState {
         DeviceInfo {
             id: self.local_device_id.clone(),
             name: settings.device_name,
+            emoji: settings.device_emoji,
             ip,
             port: settings.port,
             device_type: DeviceType::Desktop,

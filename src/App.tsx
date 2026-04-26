@@ -27,7 +27,7 @@ export default function App() {
     devices.setDevices(await favorites.list().then(() => devices.devices.map((item) => item.id === device.id ? { ...item, isFavorite: !item.isFavorite } : item)));
   };
   const content = ui.view === "receive" ? (
-    <ReceiveHome deviceName={settings.settings.deviceName} />
+    <ReceiveHome deviceName={settings.settings.deviceName} emoji={settings.settings.deviceEmoji} />
   ) : ui.view === "history" ? (
     <HistoryList />
   ) : ui.view === "clipboard" ? (
