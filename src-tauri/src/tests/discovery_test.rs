@@ -11,6 +11,7 @@ async fn test_device_discovery_and_timeout() {
         .upsert_peer(DeviceInfo {
             id: "peer".into(),
             name: "Peer".into(),
+            emoji: "🚀".into(),
             ip: "192.168.1.2".into(),
             port: 53317,
             device_type: DeviceType::Desktop,
@@ -28,6 +29,7 @@ async fn test_device_discovery_and_timeout() {
         .upsert_peer(DeviceInfo {
             id: "old".into(),
             name: "Old".into(),
+            emoji: "🌙".into(),
             ip: "192.168.1.3".into(),
             port: 53317,
             device_type: DeviceType::Desktop,
@@ -44,6 +46,7 @@ fn test_device_info_fields() {
     let device = DeviceInfo {
         id: "id".into(),
         name: "Name".into(),
+        emoji: "⭐".into(),
         ip: "127.0.0.1".into(),
         port: 53317,
         device_type: DeviceType::Desktop,

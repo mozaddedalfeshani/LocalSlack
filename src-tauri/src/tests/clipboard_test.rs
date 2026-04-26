@@ -7,6 +7,7 @@ fn test_clipboard_payload_serializes() {
         sender: DeviceInfo {
             id: "id".into(),
             name: "Peer".into(),
+            emoji: "🚀".into(),
             ip: "127.0.0.1".into(),
             port: 53317,
             device_type: DeviceType::Desktop,

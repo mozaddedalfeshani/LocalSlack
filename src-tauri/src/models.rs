@@ -13,6 +13,7 @@ pub enum DeviceType {
 pub struct DeviceInfo {
     pub id: String,
     pub name: String,
+    #[serde(default = "default_device_emoji")]
     pub emoji: String,
     pub ip: String,
     pub port: u16,
@@ -97,6 +98,7 @@ pub struct ClipboardPayload {
 #[serde(rename_all = "camelCase")]
 pub struct AppSettings {
     pub device_name: String,
+    #[serde(default = "default_device_emoji")]
     pub device_emoji: String,
     pub save_path: String,
     pub quick_save: bool,
@@ -123,4 +125,8 @@ pub struct PrepareUploadResponse {
 
 pub fn now_unix() -> u64 {
     chrono::Utc::now().timestamp().max(0) as u64
+}
+
+pub fn default_device_emoji() -> String {
+    "🚀".to_string()
 }

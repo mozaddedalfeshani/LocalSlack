@@ -87,12 +87,12 @@ fn hostname() -> String {
 
 pub fn generate_cute_name() -> String {
     const ADJECTIVES: &[&str] = &[
-        "Bright", "Calm", "Clever", "Cozy", "Fast", "Gentle", "Happy", "Kind", "Lucky",
-        "Mighty", "Neat", "Quiet", "Rapid", "Shiny", "Sunny", "Swift",
+        "Bright", "Calm", "Clever", "Cozy", "Fast", "Gentle", "Happy", "Kind", "Lucky", "Mighty",
+        "Neat", "Quiet", "Rapid", "Shiny", "Sunny", "Swift",
     ];
     const NOUNS: &[&str] = &[
-        "Apple", "Berry", "Cloud", "Comet", "Daisy", "Falcon", "Mango", "Moon", "Nova",
-        "Pear", "Pixel", "River", "Rocket", "Star", "Stone", "Wave",
+        "Apple", "Berry", "Cloud", "Comet", "Daisy", "Falcon", "Mango", "Moon", "Nova", "Pear",
+        "Pixel", "River", "Rocket", "Star", "Stone", "Wave",
     ];
     let seed = identity_seed();
     let adjective = ADJECTIVES[seed % ADJECTIVES.len()];
@@ -102,8 +102,8 @@ pub fn generate_cute_name() -> String {
 
 pub fn generate_device_emoji() -> String {
     const EMOJIS: &[&str] = &[
-        "🌙", "⭐", "🚀", "🍐", "🍋", "🍉", "🫐", "🌿", "🔥", "💎", "🎧", "📡", "🧭",
-        "⚡", "🪄", "🌊",
+        "🌙", "⭐", "🚀", "🍐", "🍋", "🍉", "🫐", "🌿", "🔥", "💎", "🎧", "📡", "🧭", "⚡", "🪄",
+        "🌊",
     ];
     EMOJIS[identity_seed() % EMOJIS.len()].to_string()
 }
@@ -113,8 +113,8 @@ fn identity_seed() -> usize {
         .duration_since(UNIX_EPOCH)
         .map(|duration| duration.as_nanos() as usize)
         .unwrap_or(0);
-    let host_seed = hostname()
-        .bytes()
-        .fold(0usize, |acc, byte| acc.wrapping_mul(31).wrapping_add(byte as usize));
+    let host_seed = hostname().bytes().fold(0usize, |acc, byte| {
+        acc.wrapping_mul(31).wrapping_add(byte as usize)
+    });
     time_seed ^ host_seed
 }

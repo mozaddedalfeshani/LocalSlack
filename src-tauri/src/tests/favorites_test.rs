@@ -7,6 +7,7 @@ fn device() -> DeviceInfo {
     DeviceInfo {
         id: "peer".into(),
         name: "Peer".into(),
+        emoji: "🚀".into(),
         ip: "192.168.1.2".into(),
         port: 53317,
         device_type: DeviceType::Desktop,
