@@ -37,6 +37,7 @@ export default function App() {
     <ReceiveHome
       deviceName={settings.settings.deviceName}
       emoji={settings.settings.deviceEmoji}
+      status={settings.settings.hidden ? "Hidden" : "Online"}
       quickSaveMode={settings.settings.quickSave ? "on" : settings.settings.quickSaveMode}
       onQuickSaveMode={setQuickSaveMode}
       onHistory={() => ui.setView("history")}

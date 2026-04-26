@@ -3,6 +3,8 @@ use crate::{
     favorites::FavoritesStore,
     models::{now_unix, DeviceInfo, DeviceType},
 };
+use mdns_sd::ServiceInfo;
+use std::collections::HashMap;
 
 #[tokio::test]
 async fn test_device_discovery_and_timeout() {
@@ -55,4 +57,34 @@ fn test_device_info_fields() {
     };
     assert_eq!(device.port, 53317);
     assert_eq!(device.name, "Name");
+}
+
+#[test]
+fn test_service_info_maps_to_device() {
+    let discovery = DiscoveryState::new();
+    let mut props = HashMap::new();
+    props.insert("id".to_string(), "peer-id".to_string());
+    props.insert("name".to_string(), "Linux Laptop".to_string());
+    props.insert("emoji".to_string(), "⭐".to_string());
+    props.insert("device_type".to_string(), "Desktop".to_string());
+    let service = ServiceInfo::new(
+        "_swiftshare._tcp.local.",
+        "SwiftShare Linux Laptop",
+        "peer.local.",
+        "192.168.1.20",
+        53317,
+        props,
+    )
+    .expect("service info");
+
+    let device = discovery
+        .device_from_service(&service)
+        .expect("device from service");
+
+    assert_eq!(device.id, "peer-id");
+    assert_eq!(device.name, "Linux Laptop");
+    assert_eq!(device.emoji, "⭐");
+    assert_eq!(device.ip, "192.168.1.20");
+    assert_eq!(device.port, 53317);
+    assert_eq!(device.device_type, DeviceType::Desktop);
 }

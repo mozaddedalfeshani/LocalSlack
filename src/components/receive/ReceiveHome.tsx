@@ -5,12 +5,14 @@ type QuickSaveMode = "off" | "favorites" | "on";
 export function ReceiveHome({
   deviceName,
   emoji,
+  status,
   quickSaveMode,
   onQuickSaveMode,
   onHistory
 }: {
   deviceName: string;
   emoji?: string;
+  status: string;
   quickSaveMode: QuickSaveMode;
   onQuickSaveMode: (mode: QuickSaveMode) => void;
   onHistory: () => void;
@@ -38,7 +40,7 @@ export function ReceiveHome({
         </div>
       </div>
       <h2 className="text-5xl font-light text-text-primary">{deviceName || "SwiftShare Device"}</h2>
-      <p className="mt-4 text-2xl font-light text-text-secondary">Offline</p>
+      <p className="mt-4 text-2xl font-light text-text-secondary">{status}</p>
 
       <div className="mt-24">
         <p className="mb-3 text-sm font-medium text-text-secondary">Quick Save</p>

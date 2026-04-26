@@ -5,16 +5,19 @@ use crate::{
 };
 use anyhow::Result;
 use local_ip_address::list_afinet_netifas;
-use mdns_sd::{ServiceDaemon, ServiceInfo};
+use mdns_sd::{ServiceDaemon, ServiceEvent, ServiceInfo};
 use std::{collections::HashMap, net::IpAddr, sync::Arc, time::Duration};
 use tauri::{AppHandle, Emitter};
 use tokio::{sync::RwLock, task::JoinHandle};
 use uuid::Uuid;
 
+const SERVICE_TYPE: &str = "_swiftshare._tcp.local.";
+
 #[derive(Clone)]
 pub struct DiscoveryState {
     local_device_id: String,
     devices: Arc<RwLock<HashMap<String, DeviceInfo>>>,
+    mdns_names: Arc<RwLock<HashMap<String, String>>>,
     mdns: Arc<RwLock<Option<ServiceDaemon>>>,
 }
 
@@ -23,6 +26,7 @@ impl DiscoveryState {
         Self {
             local_device_id: Uuid::new_v4().to_string(),
             devices: Arc::new(RwLock::new(HashMap::new())),
+            mdns_names: Arc::new(RwLock::new(HashMap::new())),
             mdns: Arc::new(RwLock::new(None)),
         }
     }
@@ -70,6 +74,10 @@ impl DiscoveryState {
         self.devices.write().await.insert(device.id.clone(), device);
     }
 
+    pub async fn remove_peer(&self, id: &str) {
+        self.devices.write().await.remove(id);
+    }
+
     pub async fn remove_stale(&self) {
         let cutoff = now_unix().saturating_sub(30);
         self.devices
@@ -84,7 +92,8 @@ impl DiscoveryState {
         settings: SettingsStore,
         favorites: FavoritesStore,
     ) -> Result<JoinHandle<()>> {
-        self.register_service(&settings).await?;
+        let daemon = self.register_service(&settings).await?;
+        self.start_browser(daemon, app.clone(), favorites.clone())?;
         let state = self.clone();
         Ok(tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(5));
@@ -97,33 +106,126 @@ impl DiscoveryState {
         }))
     }
 
-    pub async fn register_service(&self, settings: &SettingsStore) -> Result<()> {
+    pub async fn register_service(&self, settings: &SettingsStore) -> Result<ServiceDaemon> {
         let settings_value = settings.get().await;
-        if settings_value.hidden {
-            return Ok(());
-        }
         let daemon = ServiceDaemon::new()?;
-        let host = format!("{}.local.", self.local_device_id);
-        let service_name = format!("SwiftShare {}", settings_value.device_name);
-        let ips = local_ips();
-        let mut props = HashMap::new();
-        props.insert("id".to_string(), self.local_device_id.clone());
-        props.insert("name".to_string(), settings_value.device_name);
-        props.insert("device_type".to_string(), "Desktop".to_string());
-        let service = ServiceInfo::new(
-            "_swiftshare._tcp.local.",
-            &service_name,
-            &host,
-            ips.iter()
-                .map(String::as_str)
-                .collect::<Vec<_>>()
-                .as_slice(),
-            settings_value.port,
-            props,
-        )?;
-        daemon.register(service)?;
+        if !settings_value.hidden {
+            let host = format!("{}.local.", self.local_device_id);
+            let service_name = format!("SwiftShare {}", settings_value.device_name);
+            let mut ips = local_ips();
+            if ips.is_empty() {
+                ips.push("127.0.0.1".to_string());
+            }
+            let mut props = HashMap::new();
+            props.insert("id".to_string(), self.local_device_id.clone());
+            props.insert("name".to_string(), settings_value.device_name);
+            props.insert("emoji".to_string(), settings_value.device_emoji);
+            props.insert("device_type".to_string(), "Desktop".to_string());
+            let service = ServiceInfo::new(
+                SERVICE_TYPE,
+                &service_name,
+                &host,
+                ips.iter()
+                    .map(String::as_str)
+                    .collect::<Vec<_>>()
+                    .as_slice(),
+                settings_value.port,
+                props,
+            )?
+            .enable_addr_auto();
+            daemon.register(service)?;
+        }
         *self.mdns.write().await = Some(daemon);
+        Ok(self
+            .mdns
+            .read()
+            .await
+            .as_ref()
+            .expect("stored mdns")
+            .clone())
+    }
+
+    fn start_browser(
+        &self,
+        daemon: ServiceDaemon,
+        app: AppHandle,
+        favorites: FavoritesStore,
+    ) -> Result<()> {
+        let receiver = daemon.browse(SERVICE_TYPE)?;
+        let state = self.clone();
+        tokio::spawn(async move {
+            while let Ok(event) = receiver.recv_async().await {
+                match event {
+                    ServiceEvent::ServiceResolved(info) => {
+                        if let Some(device) = state.device_from_service(&info) {
+                            state
+                                .mdns_names
+                                .write()
+                                .await
+                                .insert(info.get_fullname().to_string(), device.id.clone());
+                            state.upsert_peer(device).await;
+                            state.emit_devices(&app, &favorites).await;
+                        }
+                    }
+                    ServiceEvent::ServiceRemoved(_, fullname) => {
+                        if let Some(id) = state.mdns_names.write().await.remove(&fullname) {
+                            state.remove_peer(&id).await;
+                            state.emit_devices(&app, &favorites).await;
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        });
         Ok(())
+    }
+
+    async fn emit_devices(&self, app: &AppHandle, favorites: &FavoritesStore) {
+        let devices = self.devices(favorites).await;
+        let _ = app.emit("devices-updated", devices);
+    }
+
+    pub(crate) fn device_from_service(&self, info: &ServiceInfo) -> Option<DeviceInfo> {
+        let id = info.get_property_val_str("id")?.to_string();
+        if id == self.local_device_id {
+            return None;
+        }
+        let ip = info
+            .get_addresses()
+            .iter()
+            .find(|ip| matches!(ip, IpAddr::V4(v4) if !v4.is_loopback()))
+            .or_else(|| info.get_addresses().iter().find(|ip| ip.is_ipv4()))
+            .map(ToString::to_string)?;
+        let name = info
+            .get_property_val_str("name")
+            .filter(|name| !name.is_empty())
+            .unwrap_or(info.get_fullname())
+            .to_string();
+        let emoji = info
+            .get_property_val_str("emoji")
+            .filter(|emoji| !emoji.is_empty())
+            .unwrap_or("🚀")
+            .to_string();
+        let device_type = match info
+            .get_property_val_str("device_type")
+            .unwrap_or("Desktop")
+            .to_ascii_lowercase()
+            .as_str()
+        {
+            "mobile" => DeviceType::Mobile,
+            "web" => DeviceType::Web,
+            _ => DeviceType::Desktop,
+        };
+        Some(DeviceInfo {
+            id,
+            name,
+            emoji,
+            ip,
+            port: info.get_port(),
+            device_type,
+            is_favorite: false,
+            last_seen: now_unix(),
+        })
     }
 }
 
