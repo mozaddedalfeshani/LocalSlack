@@ -16,8 +16,34 @@ export function useClipboard() {
     received,
     error,
     clearReceived: () => setReceived(undefined),
-    read: () => invoke<string>("read_clipboard").catch((err) => { setError(String(err)); return ""; }),
-    write: (text: string) => invoke("write_clipboard", { text }).catch((err) => setError(String(err))),
+    read: async () => {
+      setError(undefined);
+      try {
+        if (navigator.clipboard?.readText) {
+          return await navigator.clipboard.readText();
+        }
+      } catch {
+        // Fall back to the Rust clipboard bridge below.
+      }
+      return invoke<string>("read_clipboard").catch((err) => {
+        setError(`Clipboard read failed. Paste with Ctrl+V or grant clipboard access. ${String(err)}`);
+        return "";
+      });
+    },
+    write: async (text: string) => {
+      setError(undefined);
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(text);
+          return;
+        }
+      } catch {
+        // Fall back to the Rust clipboard bridge below.
+      }
+      return invoke("write_clipboard", { text }).catch((err) =>
+        setError(`Clipboard write failed. ${String(err)}`)
+      );
+    },
     send: (target: DeviceInfo, text: string) => invoke("send_clipboard_text", { target, text }).catch((err) => setError(String(err)))
   };
 }

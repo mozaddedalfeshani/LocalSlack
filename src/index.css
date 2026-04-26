@@ -47,9 +47,9 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   .settings-grid { @apply grid gap-4; }
   .settings-grid label { @apply grid gap-2 text-sm font-medium text-text-secondary; }
   .toggle { @apply flex items-center gap-3 rounded-md bg-bg-surface p-3; }
-  .rail-button { @apply flex h-11 w-full items-center gap-3 rounded-full px-4 text-sm font-bold text-[#dce9e4] transition hover:bg-[#29483f]; }
-  .rail-button.active { @apply bg-[#31574d] text-white; }
-  .rail-icon { @apply grid h-10 w-10 place-items-center rounded-full text-[#dce9e4]; }
+  .rail-button { @apply flex h-11 w-full items-center gap-3 rounded-full px-3 text-sm font-bold text-[#dce9e4] transition hover:bg-[#29483f]; }
+  .rail-button.active .rail-icon { @apply bg-[#31574d] text-white; }
+  .rail-icon { @apply grid h-10 w-14 place-items-center rounded-full text-[#dce9e4]; }
   .selection-tile { @apply flex h-16 flex-col items-center justify-center gap-1 rounded-lg bg-[#315048] text-sm font-bold text-[#dce9e4] transition hover:bg-[#3d6258] hover:text-white; }
   .plain-icon-button { @apply text-[#e1eee9] transition hover:text-[#80d8ca]; }
   .soft-icon-button { @apply grid h-10 w-10 place-items-center rounded-full text-[#e1eee9] transition hover:bg-[#14251f] hover:text-[#80d8ca]; }
@@ -69,6 +69,9 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   .receive-stat svg { @apply text-[#80d8ca]; }
   .receive-metric { @apply flex items-center gap-3 rounded-xl bg-[#142720] p-3 text-sm font-semibold text-[#cfe1dc]; }
   .receive-metric svg { @apply text-[#80d8ca]; }
+  .settings-card { @apply rounded-xl bg-[#101d18] p-5; }
+  .settings-tab { @apply rounded-full px-4 py-2 text-sm font-bold text-[#9cb0aa] transition hover:bg-[#172922] hover:text-[#e4efeb]; }
+  .settings-tab.active { @apply bg-[#31574d] text-white; }
 }
 
 .device-skeleton::before {

@@ -11,7 +11,7 @@ import { HistoryList } from "./components/history/HistoryList";
 import { MainLayout } from "./components/layout/MainLayout";
 import { ReceiveHome } from "./components/receive/ReceiveHome";
 import { SendHome } from "./components/send/SendHome";
-import { SettingsMenu } from "./components/settings/SettingsMenu";
+import { SettingsPage } from "./components/settings/SettingsPage";
 
 export default function App() {
   const devices = useDevices();
@@ -31,6 +31,8 @@ export default function App() {
     <ReceiveHome deviceName={settings.settings.deviceName} emoji={settings.settings.deviceEmoji} />
   ) : ui.view === "history" ? (
     <HistoryList />
+  ) : ui.view === "settings" ? (
+    <SettingsPage />
   ) : ui.view === "clipboard" ? (
     <ClipboardSend selectedDevice={devices.selectedDevice} />
   ) : ui.view === "group" ? (
@@ -78,11 +80,10 @@ export default function App() {
         onView={ui.setView}
         onSelect={devices.selectDevice}
         onToggleFavorite={toggleFavorite}
-        onSettings={() => ui.setSettingsOpen(true)}
+        onSettings={() => ui.setView("settings")}
       >
         {content}
       </MainLayout>
-      <SettingsMenu open={ui.settingsOpen} onClose={() => ui.setSettingsOpen(false)} />
       <ClipboardReceive />
       {ui.toast && <div className="fixed bottom-5 right-5 rounded-md bg-bg-elevated px-4 py-3 shadow-panel">{ui.toast}</div>}
     </>

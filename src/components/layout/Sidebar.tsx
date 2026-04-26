@@ -7,7 +7,7 @@ interface Props {
   loading?: boolean;
   error?: string;
   view: string;
-  onView: (view: "receive" | "send" | "group" | "clipboard" | "history") => void;
+  onView: (view: "receive" | "send" | "group" | "clipboard" | "history" | "settings") => void;
   onSelect: (device: DeviceInfo) => void;
   onToggleFavorite: (device: DeviceInfo) => void;
   onSettings: () => void;
@@ -18,10 +18,11 @@ export function Sidebar(props: Props) {
     { id: "receive" as const, label: "Receive", icon: Wifi },
     { id: "send" as const, label: "Send", icon: Send },
     { id: "group" as const, label: "Group Share", icon: Users },
-    { id: "history" as const, label: "History", icon: Radio }
+    { id: "history" as const, label: "History", icon: Radio },
+    { id: "settings" as const, label: "Settings", icon: Settings }
   ];
   return (
-    <aside className="flex w-[260px] shrink-0 flex-col bg-[#10201b] px-4 py-10 text-[#dce9e4]">
+    <aside className="flex w-[255px] shrink-0 flex-col bg-[#10201b] px-3 py-10 text-[#dce9e4]">
       <h1 className="mb-12 px-8 text-3xl font-extrabold tracking-tight">SwiftShare</h1>
       <nav className="space-y-3">
         {items.map((item) => {
@@ -41,12 +42,6 @@ export function Sidebar(props: Props) {
             </button>
           );
         })}
-        <button type="button" className="rail-button" onClick={props.onSettings}>
-          <span className="rail-icon">
-            <Settings size={25} strokeWidth={3} />
-          </span>
-          <span>Settings</span>
-        </button>
       </nav>
     </aside>
   );

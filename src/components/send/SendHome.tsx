@@ -23,7 +23,7 @@ interface Props {
 
 export function SendHome(props: Props) {
   return (
-    <section className="mx-auto max-w-3xl py-10">
+    <section className="mx-auto max-w-[550px] py-12">
       <h2 className="mb-4 text-lg font-bold text-[#dce8e4]">Selection</h2>
       <div className="mb-7 grid grid-cols-4 gap-3">
         <button className="selection-tile" type="button">
@@ -56,7 +56,7 @@ export function SendHome(props: Props) {
       </div>
 
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-bold text-[#dce8e4]">Available devices</h2>
+        <h2 className="text-lg font-bold text-[#dce8e4]">Nearby devices</h2>
         <p className="text-sm text-[#8fa59f]">{props.devices.length} found</p>
       </div>
       <div className="rounded-lg bg-[#122620] p-5">
