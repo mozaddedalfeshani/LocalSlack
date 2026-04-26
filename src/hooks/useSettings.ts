@@ -5,12 +5,12 @@ import { useSettingsStore } from "../store/settingsStore";
 import type { AppSettings } from "../types";
 
 const accentMap: Record<string, [string, string]> = {
-  indigo: ["#6366f1", "#4f46e5"],
-  violet: ["#8b5cf6", "#7c3aed"],
-  emerald: ["#10b981", "#059669"],
-  rose: ["#f43f5e", "#e11d48"],
-  amber: ["#f59e0b", "#d97706"],
-  sky: ["#0ea5e9", "#0284c7"]
+  indigo: ["99 102 241", "79 70 229"],
+  violet: ["139 92 246", "124 58 237"],
+  emerald: ["16 185 129", "5 150 105"],
+  rose: ["244 63 94", "225 29 72"],
+  amber: ["245 158 11", "217 119 6"],
+  sky: ["14 165 233", "2 132 199"]
 };
 
 export function applySettings(settings: AppSettings) {

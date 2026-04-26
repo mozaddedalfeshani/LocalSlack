@@ -8,9 +8,9 @@ import { ClipboardReceive } from "./components/clipboard/ClipboardReceive";
 import { ClipboardSend } from "./components/clipboard/ClipboardSend";
 import { HistoryList } from "./components/history/HistoryList";
 import { MainLayout } from "./components/layout/MainLayout";
+import { ReceiveHome } from "./components/receive/ReceiveHome";
+import { SendHome } from "./components/send/SendHome";
 import { SettingsMenu } from "./components/settings/SettingsMenu";
-import { FileDropZone } from "./components/transfer/FileDropZone";
-import { TransferProgress } from "./components/transfer/TransferProgress";
 
 export default function App() {
   const devices = useDevices();
@@ -26,15 +26,30 @@ export default function App() {
     else await favorites.add(device);
     devices.setDevices(await favorites.list().then(() => devices.devices.map((item) => item.id === device.id ? { ...item, isFavorite: !item.isFavorite } : item)));
   };
-  const content = ui.view === "history" ? (
+  const content = ui.view === "receive" ? (
+    <ReceiveHome deviceName={settings.settings.deviceName} />
+  ) : ui.view === "history" ? (
     <HistoryList />
   ) : ui.view === "clipboard" ? (
     <ClipboardSend selectedDevice={devices.selectedDevice} />
   ) : (
-    <>
-      <FileDropZone files={transfer.files} selectedDevice={devices.selectedDevice} error={transfer.error} onFiles={transfer.addFiles} onRemove={transfer.removeFile} onSend={() => devices.selectedDevice && transfer.send(devices.selectedDevice)} />
-      <TransferProgress items={transfer.progress} onCancel={(id) => transfer.cancel(id)} />
-    </>
+    <SendHome
+      devices={devices.devices}
+      selectedDevice={devices.selectedDevice}
+      loading={devices.loading}
+      error={devices.error}
+      files={transfer.files}
+      progress={transfer.progress}
+      transferError={transfer.error}
+      onSelect={devices.selectDevice}
+      onToggleFavorite={toggleFavorite}
+      onFiles={transfer.addFiles}
+      onRemoveFile={transfer.removeFile}
+      onSend={() => devices.selectedDevice && transfer.send(devices.selectedDevice)}
+      onCancel={(id) => transfer.cancel(id)}
+      onClipboard={() => ui.setView("clipboard")}
+      onSettings={() => ui.setSettingsOpen(true)}
+    />
   );
   return (
     <>

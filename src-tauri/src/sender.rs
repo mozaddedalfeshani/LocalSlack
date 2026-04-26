@@ -177,12 +177,13 @@ async fn stream_one_file(
             yield chunk?;
         }
     };
+    let request_stream = stream.map(|r: Result<Vec<u8>, std::io::Error>| r.map(bytes::Bytes::from));
     Client::new()
         .post(format!(
             "http://{}:{}/api/v1/upload/{}/{}",
             target.ip, target.port, session_id, file_meta.id
         ))
-        .body(Body::wrap_stream(stream.map(|r| r.map(bytes::Bytes::from))))
+        .body(Body::wrap_stream(request_stream))
         .send()
         .await
         .context("failed to upload file")?

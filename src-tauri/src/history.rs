@@ -1,14 +1,14 @@
 use crate::models::{now_unix, HistoryEntry, TransferDirection};
 use anyhow::{Context, Result};
-use sled::Db;
+use sled::Tree;
 
 #[derive(Clone)]
 pub struct HistoryStore {
-    db: Db,
+    db: Tree,
 }
 
 impl HistoryStore {
-    pub fn open(db: Db) -> Self {
+    pub fn open(db: Tree) -> Self {
         Self { db }
     }
 

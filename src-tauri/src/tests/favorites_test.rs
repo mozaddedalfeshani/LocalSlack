@@ -21,7 +21,7 @@ fn test_favorites_persist_and_remove() {
         .temporary(true)
         .open()
         .expect("temporary db");
-    let store = FavoritesStore::open(db);
+    let store = FavoritesStore::open(db.open_tree("favorites").expect("favorites tree"));
     store.add_favorite(device()).expect("add");
     assert!(store.is_favorite("peer").expect("exists"));
     assert_eq!(store.get_favorites().expect("list").len(), 1);

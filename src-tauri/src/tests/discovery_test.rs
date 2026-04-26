@@ -22,7 +22,7 @@ async fn test_device_discovery_and_timeout() {
         .temporary(true)
         .open()
         .expect("temporary db");
-    let favorites = FavoritesStore::open(db);
+    let favorites = FavoritesStore::open(db.open_tree("favorites").expect("favorites tree"));
     assert_eq!(discovery.devices(&favorites).await.len(), 1);
     discovery
         .upsert_peer(DeviceInfo {

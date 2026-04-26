@@ -1,14 +1,14 @@
 use crate::models::DeviceInfo;
 use anyhow::{Context, Result};
-use sled::Db;
+use sled::Tree;
 
 #[derive(Clone)]
 pub struct FavoritesStore {
-    db: Db,
+    db: Tree,
 }
 
 impl FavoritesStore {
-    pub fn open(db: Db) -> Self {
+    pub fn open(db: Tree) -> Self {
         Self { db }
     }
 
@@ -27,7 +27,7 @@ impl FavoritesStore {
     }
 
     pub fn get_favorites(&self) -> Result<Vec<DeviceInfo>> {
-        let mut devices = Vec::new();
+        let mut devices: Vec<DeviceInfo> = Vec::new();
         for item in self.db.iter() {
             let (_, value) = item.context("failed to scan favorites")?;
             devices

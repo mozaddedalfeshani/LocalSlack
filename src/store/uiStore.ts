@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-type MainView = "send" | "clipboard" | "history";
+type MainView = "receive" | "send" | "clipboard" | "history";
 
 interface UiStore {
   view: MainView;
@@ -15,7 +15,7 @@ interface UiStore {
 }
 
 export const useUiStore = create<UiStore>((set) => ({
-  view: "send",
+  view: "receive",
   settingsOpen: false,
   clipboardOpen: false,
   setView: (view) => set({ view }),

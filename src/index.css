@@ -3,50 +3,101 @@
 @tailwind utilities;
 
 :root {
-  --bg-primary: #0a0a0a;
-  --bg-secondary: #111111;
-  --bg-surface: #1a1a1a;
-  --bg-elevated: #222222;
-  --border: #2a2a2a;
-  --text-primary: #ffffff;
-  --text-secondary: #a0a0a0;
-  --text-muted: #606060;
-  --accent: #6366f1;
-  --accent-hover: #4f46e5;
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --error: #ef4444;
+  --bg-primary: 9 19 15;
+  --bg-secondary: 16 32 27;
+  --bg-surface: 18 38 32;
+  --bg-elevated: 45 76 67;
+  --border: 49 80 72;
+  --text-primary: 232 241 238;
+  --text-secondary: 190 207 201;
+  --text-muted: 132 154 147;
+  --accent: 128 216 202;
+  --accent-hover: 106 196 182;
+  --success: 128 216 202;
+  --warning: 245 158 11;
+  --error: 239 68 68;
   color-scheme: dark;
 }
 
 :root[data-theme="light"] {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f8f8f8;
-  --bg-surface: #f0f0f0;
-  --bg-elevated: #e8e8e8;
-  --border: #e0e0e0;
-  --text-primary: #0a0a0a;
-  --text-secondary: #505050;
-  --text-muted: #909090;
+  --bg-primary: 255 255 255;
+  --bg-secondary: 248 248 248;
+  --bg-surface: 240 240 240;
+  --bg-elevated: 232 232 232;
+  --border: 224 224 224;
+  --text-primary: 10 10 10;
+  --text-secondary: 80 80 80;
+  --text-muted: 144 144 144;
   color-scheme: light;
 }
 
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; }
-body { margin: 0; background: var(--bg-primary); font-family: Inter, ui-sans-serif, system-ui, sans-serif; transition: background-color 300ms, color 300ms; }
+body { margin: 0; background: rgb(var(--bg-primary)); font-family: Inter, ui-sans-serif, system-ui, sans-serif; transition: background-color 300ms, color 300ms; }
 button, input, textarea, select { font: inherit; }
 button:disabled { cursor: not-allowed; opacity: 0.45; }
 
 @layer components {
-  .icon-button { @apply inline-grid h-9 w-9 place-items-center rounded-md border border-border bg-bg-surface text-text-secondary transition hover:border-accent hover:text-text-primary; }
-  .primary-button { @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-hover; }
-  .secondary-button { @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-border bg-bg-surface px-3 py-2 text-sm text-text-secondary transition hover:border-accent hover:text-text-primary; }
+  .icon-button { @apply inline-grid h-9 w-9 place-items-center rounded-lg border border-border bg-bg-surface text-text-secondary transition hover:border-accent hover:text-text-primary; }
+  .primary-button { @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-full bg-accent px-5 py-2 text-sm font-bold text-[#08201a] transition hover:bg-accent-hover; }
+  .secondary-button { @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-border bg-bg-surface px-4 py-2 text-sm font-semibold text-text-secondary transition hover:border-accent hover:text-text-primary; }
   .secondary-button.selected, .nav-button.active { @apply border-accent bg-accent/10 text-text-primary; }
   .nav-button { @apply inline-flex min-h-10 items-center justify-center gap-1 rounded-md border border-border bg-bg-surface px-2 text-xs text-text-secondary transition hover:border-accent; }
   .input { @apply w-full rounded-md border border-border bg-bg-surface px-3 py-2 text-text-primary outline-none transition focus:border-accent; }
   .settings-grid { @apply grid gap-4; }
   .settings-grid label { @apply grid gap-2 text-sm font-medium text-text-secondary; }
   .toggle { @apply flex items-center gap-3 rounded-md bg-bg-surface p-3; }
+  .rail-button { @apply flex h-11 w-full items-center gap-3 rounded-full px-4 text-sm font-bold text-[#dce9e4] transition hover:bg-[#29483f]; }
+  .rail-button.active { @apply bg-[#31574d] text-white; }
+  .rail-icon { @apply grid h-10 w-10 place-items-center rounded-full text-[#dce9e4]; }
+  .selection-tile { @apply flex h-16 flex-col items-center justify-center gap-1 rounded-lg bg-[#315048] text-sm font-bold text-[#dce9e4] transition hover:bg-[#3d6258] hover:text-white; }
+  .plain-icon-button { @apply text-[#e1eee9] transition hover:text-[#80d8ca]; }
+  .soft-icon-button { @apply grid h-10 w-10 place-items-center rounded-full text-[#e1eee9] transition hover:bg-[#14251f] hover:text-[#80d8ca]; }
+  .quick-save-segment { @apply min-w-20 px-5 py-1.5 text-[#e8f1ee] transition hover:bg-[#315048]; }
+  .quick-save-segment.active { @apply bg-[#3b5c53]; }
+  .send-drop-panel { @apply rounded-lg border border-[#1c332c] bg-[#0e1d18] p-4; }
+  .device-skeleton { @apply h-20 rounded-lg bg-[#1a312a] opacity-80; }
+}
+
+.device-skeleton::before {
+  content: "";
+  display: block;
+  width: 28px;
+  height: 44px;
+  margin: 0 0 0 6px;
+  border: 5px solid rgb(100 119 113 / 0.7);
+  border-radius: 4px;
+  transform: translate(0, 14px);
+  box-shadow: 52px 28px 0 -8px rgb(63 88 81), 102px 28px 0 -8px rgb(63 88 81);
+}
+
+.receive-orbit {
+  position: relative;
+  width: 152px;
+  height: 152px;
+  border-radius: 999px;
+  background: conic-gradient(from 8deg, #80d8ca 0 28deg, transparent 28deg 58deg, #80d8ca 58deg 88deg, transparent 88deg 118deg, #80d8ca 118deg 148deg, transparent 148deg 178deg, #80d8ca 178deg 208deg, transparent 208deg 238deg, #80d8ca 238deg 268deg, transparent 268deg 298deg, #80d8ca 298deg 328deg, transparent 328deg 360deg);
+  animation: orbit-spin 12s linear infinite;
+}
+
+.receive-orbit::after {
+  content: "";
+  position: absolute;
+  inset: 28px;
+  border-radius: 999px;
+  background: #09130f;
+}
+
+.receive-core {
+  position: absolute;
+  inset: 42px;
+  z-index: 1;
+  border-radius: 999px;
+  background: #80d8ca;
+}
+
+@keyframes orbit-spin {
+  to { transform: rotate(360deg); }
 }
 
 [data-accent="indigo"] { background: #6366f1; }

@@ -22,7 +22,7 @@ fn test_history_crud_and_filters() {
         .temporary(true)
         .open()
         .expect("temporary db");
-    let store = HistoryStore::open(db);
+    let store = HistoryStore::open(db.open_tree("history").expect("history tree"));
     store
         .save_history_entry(entry("sent", TransferDirection::Sent))
         .expect("save sent");

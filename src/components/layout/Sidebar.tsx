@@ -1,7 +1,4 @@
-import { Clock, Send, Clipboard } from "lucide-react";
-import { useTranslation } from "react-i18next";
-import { FavoritesList } from "../favorites/FavoritesList";
-import { DeviceList } from "../devices/DeviceList";
+import { Radio, Send, Settings, Wifi } from "lucide-react";
 import type { DeviceInfo } from "../../types";
 
 interface Props {
@@ -10,32 +7,46 @@ interface Props {
   loading?: boolean;
   error?: string;
   view: string;
-  onView: (view: "send" | "clipboard" | "history") => void;
+  onView: (view: "receive" | "send" | "clipboard" | "history") => void;
   onSelect: (device: DeviceInfo) => void;
   onToggleFavorite: (device: DeviceInfo) => void;
+  onSettings: () => void;
 }
 
 export function Sidebar(props: Props) {
-  const { t } = useTranslation();
+  const items = [
+    { id: "receive" as const, label: "Receive", icon: Wifi },
+    { id: "send" as const, label: "Send", icon: Send },
+    { id: "history" as const, label: "History", icon: Radio }
+  ];
   return (
-    <aside className="flex w-72 shrink-0 flex-col gap-5 border-r border-border bg-bg-secondary p-4">
-      <nav className="grid grid-cols-3 gap-2">
-        <button className={`nav-button ${props.view === "send" ? "active" : ""}`} onClick={() => props.onView("send")}><Send size={16} />Send</button>
-        <button className={`nav-button ${props.view === "clipboard" ? "active" : ""}`} onClick={() => props.onView("clipboard")}><Clipboard size={16} />Text</button>
-        <button className={`nav-button ${props.view === "history" ? "active" : ""}`} onClick={() => props.onView("history")}><Clock size={16} />Log</button>
+    <aside className="flex w-[260px] shrink-0 flex-col bg-[#10201b] px-4 py-10 text-[#dce9e4]">
+      <h1 className="mb-12 px-8 text-3xl font-extrabold tracking-tight">SwiftShare</h1>
+      <nav className="space-y-3">
+        {items.map((item) => {
+          const Icon = item.icon;
+          const active = props.view === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              className={`rail-button ${active ? "active" : ""}`}
+              onClick={() => props.onView(item.id)}
+            >
+              <span className="rail-icon">
+                <Icon size={25} strokeWidth={3} />
+              </span>
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+        <button type="button" className="rail-button" onClick={props.onSettings}>
+          <span className="rail-icon">
+            <Settings size={25} strokeWidth={3} />
+          </span>
+          <span>Settings</span>
+        </button>
       </nav>
-      <FavoritesList devices={props.devices} onSelect={props.onSelect} />
-      <section className="min-h-0 flex-1 overflow-auto">
-        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-muted">{t("devices.title")}</h2>
-        <DeviceList
-          devices={props.devices}
-          selected={props.selected}
-          loading={props.loading}
-          error={props.error}
-          onSelect={props.onSelect}
-          onToggleFavorite={props.onToggleFavorite}
-        />
-      </section>
     </aside>
   );
 }
