@@ -272,7 +272,22 @@ fn pick_paths_linux(kind: &str) -> anyhow::Result<Vec<String>> {
     if kind == "folder" {
         zenity.arg("--directory");
     }
-    run_picker_command(&mut zenity)
+    match run_picker_command(&mut zenity) {
+        Ok(paths) => Ok(paths),
+        Err(_) => {
+            let mut kdialog = Command::new("kdialog");
+            if kind == "folder" {
+                kdialog.arg("--getexistingdirectory").arg(".");
+            } else {
+                kdialog
+                    .arg("--multiple")
+                    .arg("--separate-output")
+                    .arg("--getopenfilename")
+                    .arg(".");
+            }
+            run_picker_command(&mut kdialog)
+        }
+    }
 }
 
 fn run_picker_command(command: &mut Command) -> anyhow::Result<Vec<String>> {
