@@ -1,0 +1,99 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version, for example v0.1.0"
+        required: true
+        default: "v0.1.0"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux deb
+            platform: ubuntu-22.04
+            args: --bundles deb
+          - name: macOS dmg
+            platform: macos-latest
+            args: --bundles dmg
+          - name: Windows exe
+            platform: windows-latest
+            args: --bundles nsis
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libglib2.0-dev \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            pkg-config
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install frontend dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Test frontend
+        run: bun run test
+
+      - name: Build and upload release bundles
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: .
+          args: ${{ matrix.args }}
+          tagName: ${{ inputs.version || github.ref_name }}
+          releaseName: "SwiftShare ${{ inputs.version || github.ref_name }}"
+          releaseBody: |
+            # SwiftShare ${{ inputs.version || github.ref_name }}
+
+            SwiftShare is an open-source local Wi-Fi file sharing desktop app for Windows, macOS, and Linux.
+
+            ## Downloads
+
+            The installers are attached to this release:
+
+            - Windows: download the `.exe` installer.
+            - macOS: download the `.dmg` image.
+            - Linux: download the `.deb` package.
+
+            ## Notes
+
+            - No internet or central server is required for transfers.
+            - Devices must be on the same local network.
+            - Repository: https://github.com/mozaddedalfeshani/swiftshare
+          releaseDraft: true
+          prerelease: false
