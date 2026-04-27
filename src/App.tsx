@@ -62,6 +62,7 @@ export default function App() {
       onFiles={transfer.addFiles}
       onPickFiles={() => transfer.pick("files")}
       onPickFolder={() => transfer.pick("folder")}
+      onClearFiles={transfer.clearFiles}
       onRemoveFile={transfer.removeFile}
       onSend={() => devices.selectedDevice && transfer.send(devices.selectedDevice)}
       onCancel={(id) => transfer.cancel(id)}

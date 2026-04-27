@@ -23,6 +23,7 @@ interface Props {
   onFiles: (files: SelectedFile[]) => void;
   onPickFiles: () => void;
   onPickFolder: () => void;
+  onClearFiles: () => void;
   onRemoveFile: (id: string) => void;
   onSend: () => void;
   onCancel: (sessionId: string) => void;
@@ -34,19 +35,22 @@ export function SendHome(props: Props) {
   const canSend = Boolean(props.selectedDevice && props.files.length);
 
   return (
-    <section className="flex w-full flex-col gap-8 py-4">
+    <section className="flex h-full w-full flex-col gap-8 py-4 overflow-y-auto scrollbar-none">
       {/* Interactive Radar Discovery Area with Integrated Grid View */}
-      <DiscoveryRadar
-        devices={props.devices}
-        selectedDevice={props.selectedDevice}
-        files={props.files}
-        onSelect={props.onSelect}
-        onFiles={props.onFiles}
-        onPickFiles={props.onPickFiles}
-        onPickFolder={props.onPickFolder}
-        onClipboard={props.onClipboard}
-        onRemoveAll={() => props.files.forEach(f => props.onRemoveFile(f.id))}
-      />
+      <div className="flex-1 shrink-0">
+        <DiscoveryRadar
+          devices={props.devices}
+          selectedDevice={props.selectedDevice}
+          files={props.files}
+          onSelect={props.onSelect}
+          onFiles={props.onFiles}
+          onPickFiles={props.onPickFiles}
+          onPickFolder={props.onPickFolder}
+          onClipboard={props.onClipboard}
+          onRemoveAll={props.onClearFiles}
+          onRemoveFile={props.onRemoveFile}
+        />
+      </div>
 
       {/* Hero Send Action */}
       {props.files.length > 0 && (
