@@ -38,7 +38,7 @@ export function ReceiveHome({
       <div className="relative mb-8 grid h-44 w-44 place-items-center">
         <div className="receive-orbit absolute inset-0" />
         <div className="receive-core flex items-center justify-center overflow-hidden bg-transparent">
-          <img src={logo} alt="SwiftShare" className="h-full w-full object-cover" />
+          <img src={logo} alt="SwiftShare" className="h-full w-full rounded-full object-cover" />
         </div>
       </div>
       <h2 className="text-5xl font-light text-text-primary">{deviceName || "SwiftShare Device"}</h2>
