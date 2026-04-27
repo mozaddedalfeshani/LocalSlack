@@ -18,7 +18,9 @@ use axum::{
 };
 use futures_util::StreamExt;
 use sha2::{Digest, Sha256};
-use std::{collections::HashMap, net::SocketAddr, path::PathBuf, sync::Arc, time::Instant};
+use std::{
+    collections::HashMap, io::ErrorKind, net::SocketAddr, path::PathBuf, sync::Arc, time::Instant,
+};
 use tauri::{AppHandle, Emitter};
 use tokio::{fs, io::AsyncWriteExt, sync::RwLock, time};
 use tower_http::cors::CorsLayer;
@@ -34,8 +36,17 @@ pub struct ServerState {
     pub accepted_sessions: Arc<RwLock<HashMap<String, bool>>>,
 }
 
-pub async fn start_server(state: ServerState) -> Result<tokio::task::JoinHandle<()>> {
-    let port = state.settings.get().await.port;
+pub async fn start_server(mut state: ServerState) -> Result<(tokio::task::JoinHandle<()>, u16)> {
+    let requested_port = state.settings.get().await.port;
+    let (listener, port) = bind_server_port(requested_port).await?;
+    if port != requested_port {
+        tracing::warn!(
+            requested_port,
+            port,
+            "SwiftShare receiver port was busy; using fallback port"
+        );
+    }
+    state.device.port = port;
     let app = Router::new()
         .route("/api/v1/info", get(info))
         .route("/api/v1/prepare-upload", post(prepare_upload))
@@ -44,15 +55,35 @@ pub async fn start_server(state: ServerState) -> Result<tokio::task::JoinHandle<
         .route("/api/v1/cancel/:session_id", delete(cancel))
         .layer(CorsLayer::permissive())
         .with_state(state);
-    let addr = SocketAddr::from(([0, 0, 0, 0], port));
-    let listener = tokio::net::TcpListener::bind(addr)
-        .await
-        .context("failed to bind SwiftShare server port")?;
-    Ok(tokio::spawn(async move {
+    let handle = tokio::spawn(async move {
         if let Err(error) = axum::serve(listener, app).await {
             tracing::error!(%error, "SwiftShare server stopped");
         }
-    }))
+    });
+    Ok((handle, port))
+}
+
+async fn bind_server_port(requested_port: u16) -> Result<(tokio::net::TcpListener, u16)> {
+    for offset in 0..50_u16 {
+        let Some(port) = requested_port.checked_add(offset) else {
+            break;
+        };
+        let addr = SocketAddr::from(([0, 0, 0, 0], port));
+        match tokio::net::TcpListener::bind(addr).await {
+            Ok(listener) => return Ok((listener, port)),
+            Err(error) if error.kind() == ErrorKind::AddrInUse => continue,
+            Err(error) => return Err(error).context("failed to bind SwiftShare server port"),
+        }
+    }
+
+    let listener = tokio::net::TcpListener::bind(SocketAddr::from(([0, 0, 0, 0], 0)))
+        .await
+        .context("failed to bind SwiftShare fallback server port")?;
+    let port = listener
+        .local_addr()
+        .context("failed to read SwiftShare fallback server port")?
+        .port();
+    Ok((listener, port))
 }
 
 async fn info(State(state): State<ServerState>) -> Json<DeviceInfo> {

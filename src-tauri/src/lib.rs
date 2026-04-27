@@ -343,17 +343,29 @@ pub fn run() {
             let accepted_sessions = state.accepted_sessions.clone();
             tauri::async_runtime::spawn(async move {
                 let device = discovery.local_device(&settings).await;
-                let _ = discovery.start(app_handle.clone(), favorites.clone()).await;
                 let server_state = server::ServerState {
                     app: server_handle,
                     device,
-                    settings,
+                    settings: settings.clone(),
                     history,
                     sessions: Arc::new(RwLock::new(HashMap::new())),
                     accepted_sessions,
                 };
-                if let Err(error) = server::start_server(server_state).await {
-                    tracing::error!(%error, "failed to start local server");
+                match server::start_server(server_state).await {
+                    Ok((_handle, port)) => {
+                        discovery.set_runtime_port(port).await;
+                        if let Err(error) =
+                            discovery.start(app_handle.clone(), favorites.clone()).await
+                        {
+                            tracing::error!(%error, "failed to start discovery");
+                        }
+                        if let Err(error) = discovery.apply_receive_visibility(&settings).await {
+                            tracing::error!(%error, "failed to apply receive visibility");
+                        }
+                    }
+                    Err(error) => {
+                        tracing::error!(%error, "failed to start local server");
+                    }
                 }
             });
             app.manage(state);

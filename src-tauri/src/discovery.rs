@@ -21,6 +21,7 @@ pub struct DiscoveryState {
     mdns: Arc<RwLock<Option<ServiceDaemon>>>,
     advertised_fullname: Arc<RwLock<Option<String>>>,
     receive_visible: Arc<RwLock<bool>>,
+    runtime_port: Arc<RwLock<Option<u16>>>,
 }
 
 impl DiscoveryState {
@@ -32,11 +33,13 @@ impl DiscoveryState {
             mdns: Arc::new(RwLock::new(None)),
             advertised_fullname: Arc::new(RwLock::new(None)),
             receive_visible: Arc::new(RwLock::new(false)),
+            runtime_port: Arc::new(RwLock::new(None)),
         }
     }
 
     pub async fn local_device(&self, settings: &SettingsStore) -> DeviceInfo {
         let settings = settings.get().await;
+        let port = self.runtime_port.read().await.unwrap_or(settings.port);
         let ip = local_ips()
             .first()
             .cloned()
@@ -46,11 +49,15 @@ impl DiscoveryState {
             name: settings.device_name,
             emoji: settings.device_emoji,
             ip,
-            port: settings.port,
+            port,
             device_type: DeviceType::Desktop,
             is_favorite: false,
             last_seen: now_unix(),
         }
+    }
+
+    pub async fn set_runtime_port(&self, port: u16) {
+        *self.runtime_port.write().await = Some(port);
     }
 
     pub async fn devices(&self, favorites: &FavoritesStore) -> Vec<DeviceInfo> {
@@ -118,25 +125,30 @@ impl DiscoveryState {
 
         if !should_advertise {
             if let Some(fullname) = self.advertised_fullname.write().await.take() {
-                let _ = daemon.unregister(&fullname);
+                unregister_service(daemon, fullname);
             }
             return Ok(());
         }
 
-        let service = self.service_info(settings_value)?;
+        let port = self
+            .runtime_port
+            .read()
+            .await
+            .unwrap_or(settings_value.port);
+        let service = self.service_info(settings_value, port)?;
         let fullname = service.get_fullname().to_string();
         if self.advertised_fullname.read().await.as_deref() == Some(fullname.as_str()) {
             return Ok(());
         }
         if let Some(old_fullname) = self.advertised_fullname.write().await.take() {
-            let _ = daemon.unregister(&old_fullname);
+            unregister_service(daemon.clone(), old_fullname);
         }
         daemon.register(service)?;
         *self.advertised_fullname.write().await = Some(fullname);
         Ok(())
     }
 
-    fn service_info(&self, settings: AppSettings) -> Result<ServiceInfo> {
+    fn service_info(&self, settings: AppSettings, port: u16) -> Result<ServiceInfo> {
         let host = format!("{}.local.", self.local_device_id);
         let service_name = format!("SwiftShare {}", settings.device_name);
         let mut ips = local_ips();
@@ -156,7 +168,7 @@ impl DiscoveryState {
                 .map(String::as_str)
                 .collect::<Vec<_>>()
                 .as_slice(),
-            settings.port,
+            port,
             props,
         )?
         .enable_addr_auto())
@@ -244,6 +256,15 @@ impl DiscoveryState {
             last_seen: now_unix(),
         })
     }
+}
+
+fn unregister_service(daemon: ServiceDaemon, fullname: String) {
+    let Ok(receiver) = daemon.unregister(&fullname) else {
+        return;
+    };
+    tokio::task::spawn_blocking(move || {
+        let _ = receiver.recv_timeout(Duration::from_secs(2));
+    });
 }
 
 pub fn local_ips() -> Vec<String> {
