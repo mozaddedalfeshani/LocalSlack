@@ -16,17 +16,42 @@ impl SettingsStore {
         let dir = app_dir()?;
         fs::create_dir_all(&dir).context("failed to create SwiftShare config directory")?;
         let path = dir.join("settings.json");
+        let mut should_persist = false;
         let mut settings = if path.exists() {
             let bytes = fs::read(&path).context("failed to read settings")?;
-            serde_json::from_slice(&bytes).unwrap_or_else(|_| default_settings())
+            match serde_json::from_slice::<serde_json::Value>(&bytes) {
+                Ok(value) => {
+                    let missing_device_id = value
+                        .get("deviceId")
+                        .and_then(|id| id.as_str())
+                        .map(str::trim)
+                        .unwrap_or_default()
+                        .is_empty();
+                    let settings =
+                        serde_json::from_value(value).unwrap_or_else(|_| default_settings());
+                    should_persist = missing_device_id;
+                    settings
+                }
+                Err(_) => {
+                    should_persist = true;
+                    default_settings()
+                }
+            }
         } else {
             let defaults = default_settings();
             fs::write(&path, serde_json::to_vec_pretty(&defaults)?)
                 .context("failed to write default settings")?;
             defaults
         };
-        if is_generated_cute_name(&settings.device_name) {
+        if should_migrate_device_name(&settings.device_name) {
             settings.device_name = hostname();
+            should_persist = true;
+        }
+        if settings.device_id.trim().is_empty() {
+            settings.device_id = uuid::Uuid::new_v4().to_string();
+            should_persist = true;
+        }
+        if should_persist {
             fs::write(&path, serde_json::to_vec_pretty(&settings)?)
                 .context("failed to write migrated settings")?;
         }
@@ -143,6 +168,13 @@ fn is_generated_cute_name(name: &str) -> bool {
         return false;
     };
     CUTE_ADJECTIVES.contains(&adjective) && CUTE_NOUNS.contains(&noun)
+}
+
+fn should_migrate_device_name(name: &str) -> bool {
+    let trimmed = name.trim();
+    trimmed.is_empty()
+        || trimmed.starts_with("SwiftShare Device")
+        || is_generated_cute_name(trimmed)
 }
 
 pub fn generate_device_emoji() -> String {
