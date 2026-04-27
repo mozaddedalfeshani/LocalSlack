@@ -22,6 +22,19 @@ export function useTransfer() {
   const store = useTransferStore();
 
   useEffect(() => {
+    const syncPendingIncoming = async () => {
+      try {
+        const requests = await invoke<IncomingTransferRequest[]>("get_pending_incoming");
+        if (requests.length === 0) return;
+        const current = useTransferStore.getState().incoming;
+        const next = requests[0];
+        if (current?.sessionId === next.sessionId) return;
+        showRequest(next);
+      } catch {
+        // Polling is a fallback only.
+      }
+    };
+
     const unlisten = listen<TransferProgress>("transfer-progress", (event) => store.setProgress(event.payload));
 
     const unlistenIncoming = listen<IncomingTransferRequest>("incoming-request", (event) => {
@@ -56,16 +69,13 @@ export function useTransfer() {
       }, 3000);
     });
 
-    let cancelled = false;
-    void invoke<IncomingTransferRequest[]>("get_pending_incoming")
-      .then((requests) => {
-        if (cancelled || requests.length === 0) return;
-        showRequest(requests[0]);
-      })
-      .catch(() => undefined);
+    void syncPendingIncoming();
+    const pollId = window.setInterval(() => {
+      void syncPendingIncoming();
+    }, 1000);
 
     return () => {
-      cancelled = true;
+      window.clearInterval(pollId);
       unlisten.then((fn) => fn()).catch(() => undefined);
       unlistenIncoming.then((fn) => fn()).catch(() => undefined);
       unlistenReceiving.then((fn) => fn()).catch(() => undefined);
