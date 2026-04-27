@@ -52,7 +52,8 @@ async fn send_files(
     target: DeviceInfo,
     file_paths: Vec<String>,
 ) -> Result<(), String> {
-    sender::send_files(app, state.canceller.clone(), target, file_paths)
+    let sender = state.discovery.local_device(&state.settings).await;
+    sender::send_files(app, state.canceller.clone(), sender, target, file_paths)
         .await
         .map_err(|error| error.to_string())
 }
@@ -325,6 +326,7 @@ pub fn run() {
             };
             let app_handle = app.handle().clone();
             let server_handle = app.handle().clone();
+            let accepted_sessions = state.accepted_sessions.clone();
             tauri::async_runtime::spawn(async move {
                 let device = discovery.local_device(&settings).await;
                 let _ = discovery
@@ -336,6 +338,7 @@ pub fn run() {
                     settings,
                     history,
                     sessions: Arc::new(RwLock::new(HashMap::new())),
+                    accepted_sessions,
                 };
                 if let Err(error) = server::start_server(server_state).await {
                     tracing::error!(%error, "failed to start local server");

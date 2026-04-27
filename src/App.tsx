@@ -11,6 +11,7 @@ import { MainLayout } from "./components/layout/MainLayout";
 import { ReceiveHome } from "./components/receive/ReceiveHome";
 import { SendHome } from "./components/send/SendHome";
 import { SettingsPage } from "./components/settings/SettingsPage";
+import { ReceiveDialog } from "./components/transfer/ReceiveDialog";
 
 export default function App() {
   const devices = useDevices();
@@ -86,6 +87,12 @@ export default function App() {
         {content}
       </MainLayout>
       <ClipboardReceive />
+      <ReceiveDialog
+        sender={transfer.incoming?.sender}
+        files={transfer.incoming?.files ?? []}
+        onAccept={transfer.acceptIncoming}
+        onReject={transfer.rejectIncoming}
+      />
       {ui.toast && <div className="fixed bottom-5 right-5 rounded-md bg-bg-elevated px-4 py-3 shadow-panel">{ui.toast}</div>}
     </>
   );

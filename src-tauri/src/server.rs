@@ -2,8 +2,8 @@ use crate::{
     clipboard,
     history::HistoryStore,
     models::{
-        now_unix, ClipboardPayload, DeviceInfo, FileMetadata, HistoryEntry, PrepareUploadResponse,
-        TransferDirection, TransferProgress, TransferStatus,
+        now_unix, ClipboardPayload, DeviceInfo, FileMetadata, HistoryEntry, PrepareUploadRequest,
+        PrepareUploadResponse, TransferDirection, TransferProgress, TransferStatus,
     },
     settings::SettingsStore,
 };
@@ -20,7 +20,7 @@ use futures_util::StreamExt;
 use sha2::{Digest, Sha256};
 use std::{collections::HashMap, net::SocketAddr, path::PathBuf, sync::Arc, time::Instant};
 use tauri::{AppHandle, Emitter};
-use tokio::{fs, io::AsyncWriteExt, sync::RwLock};
+use tokio::{fs, io::AsyncWriteExt, sync::RwLock, time};
 use tower_http::cors::CorsLayer;
 use uuid::Uuid;
 
@@ -31,6 +31,7 @@ pub struct ServerState {
     pub settings: SettingsStore,
     pub history: HistoryStore,
     pub sessions: Arc<RwLock<HashMap<String, Vec<FileMetadata>>>>,
+    pub accepted_sessions: Arc<RwLock<HashMap<String, bool>>>,
 }
 
 pub async fn start_server(state: ServerState) -> Result<tokio::task::JoinHandle<()>> {
@@ -60,26 +61,57 @@ async fn info(State(state): State<ServerState>) -> Json<DeviceInfo> {
 
 async fn prepare_upload(
     State(state): State<ServerState>,
-    Json(files): Json<Vec<FileMetadata>>,
+    Json(request): Json<PrepareUploadRequest>,
 ) -> impl IntoResponse {
     let session_id = Uuid::new_v4().to_string();
+    let files = request.files;
     state
         .sessions
         .write()
         .await
         .insert(session_id.clone(), files.clone());
     let settings = state.settings.get().await;
-    let accepted = settings.quick_save || settings.quick_save_mode == "on";
+    let mut accepted = settings.quick_save || settings.quick_save_mode == "on";
     if !accepted {
-        let _ = state
-            .app
-            .emit("incoming-request", (session_id.clone(), files));
+        let _ = state.app.emit(
+            "incoming-request",
+            IncomingTransferRequest {
+                session_id: session_id.clone(),
+                sender: request.sender,
+                files,
+            },
+        );
+        accepted = wait_for_decision(&state, &session_id).await;
+    }
+    if !accepted {
+        state.sessions.write().await.remove(&session_id);
     }
     Json(PrepareUploadResponse {
         session_id,
         token: Uuid::new_v4().to_string(),
         accepted,
     })
+}
+
+#[derive(serde::Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct IncomingTransferRequest {
+    session_id: String,
+    sender: DeviceInfo,
+    files: Vec<FileMetadata>,
+}
+
+async fn wait_for_decision(state: &ServerState, session_id: &str) -> bool {
+    let deadline = time::Instant::now() + time::Duration::from_secs(60);
+    loop {
+        if let Some(accepted) = state.accepted_sessions.write().await.remove(session_id) {
+            return accepted;
+        }
+        if time::Instant::now() >= deadline {
+            return false;
+        }
+        time::sleep(time::Duration::from_millis(150)).await;
+    }
 }
 
 async fn upload(

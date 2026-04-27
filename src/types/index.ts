@@ -32,6 +32,12 @@ export interface TransferProgress {
   etaSeconds: number;
 }
 
+export interface IncomingTransferRequest {
+  sessionId: string;
+  sender: DeviceInfo;
+  files: FileMetadata[];
+}
+
 export interface HistoryEntry {
   id: string;
   fileName: string;

@@ -1,6 +1,6 @@
 use crate::models::{
-    now_unix, DeviceInfo, FileMetadata, HistoryEntry, TransferDirection, TransferProgress,
-    TransferStatus,
+    now_unix, DeviceInfo, FileMetadata, HistoryEntry, PrepareUploadRequest, PrepareUploadResponse,
+    TransferDirection, TransferProgress, TransferStatus,
 };
 use anyhow::{anyhow, Context, Result};
 use futures_util::StreamExt;
@@ -66,6 +66,7 @@ pub async fn build_metadata(path: &PathBuf) -> Result<FileMetadata> {
 pub async fn send_files(
     app: AppHandle,
     canceller: TransferCanceller,
+    sender: DeviceInfo,
     target: DeviceInfo,
     paths: Vec<String>,
 ) -> Result<()> {
@@ -74,19 +75,28 @@ pub async fn send_files(
     for path in &file_paths {
         files.push(build_metadata(path).await?);
     }
-    let session_id = Uuid::new_v4().to_string();
-    let cancel_flag = canceller.create(&session_id).await;
-    Client::new()
+    let prepare = Client::new()
         .post(format!(
             "http://{}:{}/api/v1/prepare-upload",
             target.ip, target.port
         ))
-        .json(&files)
+        .json(&PrepareUploadRequest {
+            sender,
+            files: files.clone(),
+        })
         .send()
         .await
         .context("target device is offline or unreachable")?
         .error_for_status()
-        .context("target rejected upload preparation")?;
+        .context("target rejected upload preparation")?
+        .json::<PrepareUploadResponse>()
+        .await
+        .context("target returned an invalid upload preparation response")?;
+    if !prepare.accepted {
+        return Err(anyhow!("transfer rejected by target"));
+    }
+    let session_id = prepare.session_id;
+    let cancel_flag = canceller.create(&session_id).await;
 
     for (path, file) in file_paths.iter().zip(files.iter()) {
         if cancel_flag.load(Ordering::SeqCst) {

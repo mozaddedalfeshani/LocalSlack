@@ -2,15 +2,17 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect } from "react";
 import { useTransferStore } from "../store/transferStore";
-import type { DeviceInfo, TransferProgress } from "../types";
+import type { DeviceInfo, IncomingTransferRequest, TransferProgress } from "../types";
 import { pickDesktopFiles } from "../utils/fileUtils";
 
 export function useTransfer() {
   const store = useTransferStore();
   useEffect(() => {
     const unlisten = listen<TransferProgress>("transfer-progress", (event) => store.setProgress(event.payload));
+    const unlistenIncoming = listen<IncomingTransferRequest>("incoming-request", (event) => store.setIncoming(event.payload));
     return () => {
       unlisten.then((fn) => fn()).catch(() => undefined);
+      unlistenIncoming.then((fn) => fn()).catch(() => undefined);
     };
   }, []);
   const send = async (target: DeviceInfo) => {
@@ -33,5 +35,15 @@ export function useTransfer() {
     }
   };
   const cancel = async (sessionId: string) => invoke("cancel_transfer", { sessionId });
-  return { ...store, send, cancel, pick };
+  const acceptIncoming = async () => {
+    if (!store.incoming) return;
+    await invoke("accept_transfer", { sessionId: store.incoming.sessionId });
+    store.setIncoming(undefined);
+  };
+  const rejectIncoming = async () => {
+    if (!store.incoming) return;
+    await invoke("reject_transfer", { sessionId: store.incoming.sessionId });
+    store.setIncoming(undefined);
+  };
+  return { ...store, send, cancel, pick, acceptIncoming, rejectIncoming };
 }

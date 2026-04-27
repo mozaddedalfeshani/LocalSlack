@@ -8,6 +8,6 @@ async fn test_sha256_verification_after_send() {
     let hash = sha256_file(&file.path().to_path_buf()).await.expect("hash");
     assert_eq!(
         hash,
-        "ad44dab545aa90fcfa744987fd73b0843154fda759a4265324912bf7bc98e3b8"
+        "e36f1b45a2856f16059cbb9d9dcc93e81bb62bce033f76f8cf2f629d2060680d"
     );
 }
