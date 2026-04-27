@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { useDevices } from "./hooks/useDevices";
 import { useFavorites } from "./hooks/useFavorites";
 import { useSettings } from "./hooks/useSettings";
@@ -12,6 +11,7 @@ import { ReceiveHome } from "./components/receive/ReceiveHome";
 import { SendHome } from "./components/send/SendHome";
 import { SettingsPage } from "./components/settings/SettingsPage";
 import { ReceiveDialog } from "./components/transfer/ReceiveDialog";
+import { ReceivingFilesDialog } from "./components/transfer/ReceivingFilesDialog";
 
 export default function App() {
   const devices = useDevices();
@@ -19,13 +19,14 @@ export default function App() {
   const settings = useSettings();
   const favorites = useFavorites();
   const ui = useUiStore();
-  useEffect(() => {
-    if (!devices.selectedDevice && devices.devices[0]) devices.selectDevice(devices.devices[0]);
-  }, [devices.devices, devices.selectedDevice]);
   const toggleFavorite = async (device: typeof devices.devices[number]) => {
-    if (device.isFavorite) await favorites.remove(device.id);
-    else await favorites.add(device);
-    devices.setDevices(await favorites.list().then(() => devices.devices.map((item) => item.id === device.id ? { ...item, isFavorite: !item.isFavorite } : item)));
+    const isFavorite = !device.isFavorite;
+    if (isFavorite) await favorites.add(device);
+    else await favorites.remove(device.id);
+
+    const update = (item: typeof device) => item.id === device.id ? { ...item, isFavorite } : item;
+    devices.setDevices(devices.devices.map(update));
+    if (devices.selectedDevice?.id === device.id) devices.selectDevice(update(devices.selectedDevice));
   };
   const setQuickSaveMode = (quickSaveMode: typeof settings.settings.quickSaveMode) => {
     void settings.save({
@@ -60,6 +61,7 @@ export default function App() {
       transferError={transfer.error}
       onSelect={devices.selectDevice}
       onToggleFavorite={toggleFavorite}
+      onRefresh={devices.refresh}
       onFiles={transfer.addFiles}
       onPickFiles={() => transfer.pick("files")}
       onPickFolder={() => transfer.pick("folder")}
@@ -92,6 +94,11 @@ export default function App() {
         files={transfer.incoming?.files ?? []}
         onAccept={transfer.acceptIncoming}
         onReject={transfer.rejectIncoming}
+      />
+      <ReceivingFilesDialog
+        transfer={transfer.receiving}
+        progress={transfer.progress}
+        onDone={transfer.dismissReceiving}
       />
       {ui.toast && <div className="fixed bottom-5 right-5 rounded-md bg-bg-elevated px-4 py-3 shadow-panel">{ui.toast}</div>}
     </>

@@ -2,7 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect } from "react";
 import { useTransferStore } from "../store/transferStore";
-import type { DeviceInfo, IncomingTransferRequest, TransferProgress } from "../types";
+import type { DeviceInfo, IncomingTransferRequest, ReceivingTransfer, TransferProgress } from "../types";
 import { pickDesktopFiles } from "../utils/fileUtils";
 
 export function useTransfer() {
@@ -10,9 +10,11 @@ export function useTransfer() {
   useEffect(() => {
     const unlisten = listen<TransferProgress>("transfer-progress", (event) => store.setProgress(event.payload));
     const unlistenIncoming = listen<IncomingTransferRequest>("incoming-request", (event) => store.setIncoming(event.payload));
+    const unlistenReceiving = listen<ReceivingTransfer>("receiving-started", (event) => store.setReceiving(event.payload));
     return () => {
       unlisten.then((fn) => fn()).catch(() => undefined);
       unlistenIncoming.then((fn) => fn()).catch(() => undefined);
+      unlistenReceiving.then((fn) => fn()).catch(() => undefined);
     };
   }, []);
   const send = async (target: DeviceInfo) => {
@@ -45,5 +47,6 @@ export function useTransfer() {
     await invoke("reject_transfer", { sessionId: store.incoming.sessionId });
     store.setIncoming(undefined);
   };
-  return { ...store, send, cancel, pick, acceptIncoming, rejectIncoming };
+  const dismissReceiving = () => store.setReceiving(undefined);
+  return { ...store, send, cancel, pick, acceptIncoming, rejectIncoming, dismissReceiving };
 }

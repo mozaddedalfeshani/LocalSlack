@@ -38,6 +38,8 @@ export interface IncomingTransferRequest {
   files: FileMetadata[];
 }
 
+export type ReceivingTransfer = IncomingTransferRequest;
+
 export interface HistoryEntry {
   id: string;
   fileName: string;

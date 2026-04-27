@@ -64,6 +64,7 @@ async fn prepare_upload(
     Json(request): Json<PrepareUploadRequest>,
 ) -> impl IntoResponse {
     let session_id = Uuid::new_v4().to_string();
+    let sender = request.sender;
     let files = request.files;
     state
         .sessions
@@ -77,14 +78,23 @@ async fn prepare_upload(
             "incoming-request",
             IncomingTransferRequest {
                 session_id: session_id.clone(),
-                sender: request.sender,
-                files,
+                sender: sender.clone(),
+                files: files.clone(),
             },
         );
         accepted = wait_for_decision(&state, &session_id).await;
     }
     if !accepted {
         state.sessions.write().await.remove(&session_id);
+    } else {
+        let _ = state.app.emit(
+            "receiving-started",
+            IncomingTransferRequest {
+                session_id: session_id.clone(),
+                sender,
+                files,
+            },
+        );
     }
     Json(PrepareUploadResponse {
         session_id,

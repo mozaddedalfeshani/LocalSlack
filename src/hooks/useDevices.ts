@@ -1,11 +1,23 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useDeviceStore } from "../store/deviceStore";
 import type { DeviceInfo } from "../types";
 
 export function useDevices() {
   const store = useDeviceStore();
+  const refresh = useCallback(async () => {
+    store.setLoading(true);
+    store.setError(undefined);
+    try {
+      store.setDevices(await invoke<DeviceInfo[]>("get_devices"));
+    } catch (error) {
+      store.setError(String(error));
+    } finally {
+      store.setLoading(false);
+    }
+  }, [store.setDevices, store.setError, store.setLoading]);
+
   useEffect(() => {
     let disposed = false;
     store.setLoading(true);
@@ -19,5 +31,5 @@ export function useDevices() {
       unlisten.then((fn) => fn()).catch(() => undefined);
     };
   }, []);
-  return store;
+  return { ...store, refresh };
 }

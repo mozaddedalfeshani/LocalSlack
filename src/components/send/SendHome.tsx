@@ -5,10 +5,7 @@ import type {
 } from "../../types";
 import { TransferProgress } from "../transfer/TransferProgress";
 import { DiscoveryRadar } from "./DiscoveryRadar";
-import { FilePreview } from "../transfer/FilePreview";
-import { ImagePreview } from "../transfer/ImagePreview";
-import { useTranslation } from "react-i18next";
-import { RefreshCw, MousePointerClick, Heart, Settings } from "lucide-react";
+import { RefreshCw, Heart, Settings } from "lucide-react";
 
 interface Props {
   devices: DeviceInfo[];
@@ -20,6 +17,7 @@ interface Props {
   transferError?: string;
   onSelect: (device: DeviceInfo) => void;
   onToggleFavorite: (device: DeviceInfo) => void;
+  onRefresh: () => void;
   onFiles: (files: SelectedFile[]) => void;
   onPickFiles: () => void;
   onPickFolder: () => void;
@@ -31,7 +29,6 @@ interface Props {
 }
 
 export function SendHome(props: Props) {
-  const { t } = useTranslation();
   const canSend = Boolean(props.selectedDevice && props.files.length);
 
   return (
@@ -61,10 +58,13 @@ export function SendHome(props: Props) {
             disabled={!canSend}
             onClick={props.onSend}
           >
-            {props.selectedDevice 
-              ? t("transfer.send", { device: props.selectedDevice.name }) 
-              : "Select a device to send"}
+            {props.selectedDevice ? "Send" : "Choose a nearby device"}
           </button>
+          {props.selectedDevice && (
+            <p className="text-sm font-medium text-text-muted">
+              Selected: {props.selectedDevice.name}
+            </p>
+          )}
         </div>
       )}
 
@@ -76,14 +76,8 @@ export function SendHome(props: Props) {
             <span className="text-xs font-medium text-text-muted uppercase tracking-widest">Nearby</span>
           </div>
           <div className="flex items-center gap-4 text-text-secondary">
-            <button className="plain-icon-button hover:text-accent transition-colors" title="Refresh">
-              <RefreshCw size={20} strokeWidth={2.5} />
-            </button>
-            <button className="plain-icon-button hover:text-accent transition-colors" title="Select All">
-              <MousePointerClick size={20} strokeWidth={2.5} />
-            </button>
-            <button className="plain-icon-button hover:text-accent transition-colors" title="Favorites">
-              <Heart size={20} strokeWidth={2.5} />
+            <button className="plain-icon-button hover:text-accent transition-colors" title="Refresh" onClick={props.onRefresh}>
+              <RefreshCw size={20} strokeWidth={2.5} className={props.loading ? "animate-spin" : ""} />
             </button>
             <button className="plain-icon-button hover:text-accent transition-colors" title="Settings">
               <Settings size={20} strokeWidth={2.5} />
@@ -113,9 +107,25 @@ export function SendHome(props: Props) {
                     <p className="text-xs text-text-muted">{device.id}</p>
                   </div>
                 </div>
-                {props.selectedDevice?.id === device.id && (
-                  <div className="h-2 w-2 rounded-full bg-accent shadow-[0_0_8px_rgb(var(--accent))]" />
-                )}
+                <div className="flex items-center gap-3">
+                  {props.selectedDevice?.id === device.id && (
+                    <div className="h-2 w-2 rounded-full bg-accent shadow-[0_0_8px_rgb(var(--accent))]" />
+                  )}
+                  <button
+                    type="button"
+                    className={`grid h-10 w-10 place-items-center rounded-xl border border-border/40 transition hover:border-accent hover:text-accent ${
+                      device.isFavorite ? "bg-accent/15 text-accent" : "bg-bg-elevated/60 text-text-secondary"
+                    }`}
+                    title={device.isFavorite ? "Remove favorite" : "Add favorite"}
+                    aria-label={device.isFavorite ? "Remove favorite" : "Add favorite"}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      props.onToggleFavorite(device);
+                    }}
+                  >
+                    <Heart size={18} fill={device.isFavorite ? "currentColor" : "none"} />
+                  </button>
+                </div>
               </div>
             ))
           ) : (
