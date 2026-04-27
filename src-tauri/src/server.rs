@@ -3,8 +3,9 @@ use crate::{
     favorites::FavoritesStore,
     history::HistoryStore,
     models::{
-        now_unix, ClipboardPayload, DeviceInfo, FileMetadata, HistoryEntry, PrepareUploadRequest,
-        PrepareUploadResponse, TransferDirection, TransferProgress, TransferStatus,
+        now_unix, ClipboardPayload, DeviceInfo, FileMetadata, HistoryEntry,
+        IncomingTransferRequest, PrepareUploadRequest, PrepareUploadResponse, TransferDirection,
+        TransferProgress, TransferStatus,
     },
     settings::SettingsStore,
 };
@@ -27,7 +28,7 @@ use std::{
     sync::Arc,
     time::Instant,
 };
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager, UserAttentionType};
 use tokio::{fs, io::AsyncWriteExt, sync::RwLock, time};
 use tower_http::cors::CorsLayer;
 use uuid::Uuid;
@@ -42,6 +43,7 @@ pub struct ServerState {
     pub sessions: Arc<RwLock<HashMap<String, Vec<FileMetadata>>>>,
     pub sessions_senders: Arc<RwLock<HashMap<String, DeviceInfo>>>,
     pub sessions_completed: Arc<RwLock<HashMap<String, HashSet<String>>>>,
+    pub pending_incoming: Arc<RwLock<HashMap<String, IncomingTransferRequest>>>,
     pub accepted_sessions: Arc<RwLock<HashMap<String, bool>>>,
 }
 
@@ -123,29 +125,28 @@ async fn prepare_upload(
     if !accepted && settings.quick_save_mode == "favorites" {
         accepted = state.favorites.is_favorite(&sender.id).unwrap_or(false);
     }
+    let incoming = IncomingTransferRequest {
+        session_id: session_id.clone(),
+        sender: sender.clone(),
+        files: files.clone(),
+    };
     if !accepted {
-        let _ = state.app.emit(
-            "incoming-request",
-            IncomingTransferRequest {
-                session_id: session_id.clone(),
-                sender: sender.clone(),
-                files: files.clone(),
-            },
-        );
+        state
+            .pending_incoming
+            .write()
+            .await
+            .insert(session_id.clone(), incoming.clone());
+        present_receive_window(&state.app, "incoming-request");
+        emit_receive_event(&state.app, "incoming-request", incoming.clone());
         accepted = wait_for_decision(&state, &session_id).await;
+        state.pending_incoming.write().await.remove(&session_id);
     }
     if !accepted {
         state.sessions.write().await.remove(&session_id);
         state.sessions_senders.write().await.remove(&session_id);
     } else {
-        let _ = state.app.emit(
-            "receiving-started",
-            IncomingTransferRequest {
-                session_id: session_id.clone(),
-                sender,
-                files,
-            },
-        );
+        present_receive_window(&state.app, "receiving-started");
+        emit_receive_event(&state.app, "receiving-started", incoming);
     }
     Json(PrepareUploadResponse {
         session_id,
@@ -154,12 +155,41 @@ async fn prepare_upload(
     })
 }
 
-#[derive(serde::Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-struct IncomingTransferRequest {
-    session_id: String,
-    sender: DeviceInfo,
-    files: Vec<FileMetadata>,
+fn present_receive_window(app: &AppHandle, reason: &str) {
+    #[cfg(target_os = "macos")]
+    if let Err(error) = app.show() {
+        tracing::warn!(%error, %reason, "failed to show SwiftShare app");
+    }
+
+    let Some(window) = app.get_webview_window("main") else {
+        tracing::warn!(%reason, "SwiftShare main window was not available for receive request");
+        return;
+    };
+
+    if let Err(error) = window.show() {
+        tracing::warn!(%error, %reason, "failed to show SwiftShare main window");
+    }
+    if let Err(error) = window.unminimize() {
+        tracing::warn!(%error, %reason, "failed to unminimize SwiftShare main window");
+    }
+    if let Err(error) = window.request_user_attention(Some(UserAttentionType::Critical)) {
+        tracing::warn!(%error, %reason, "failed to request user attention for receive request");
+    }
+    if let Err(error) = window.set_focus() {
+        tracing::warn!(%error, %reason, "failed to focus SwiftShare main window");
+    }
+}
+
+fn emit_receive_event(app: &AppHandle, event: &str, payload: IncomingTransferRequest) {
+    let result = if let Some(window) = app.get_webview_window("main") {
+        window.emit(event, payload)
+    } else {
+        app.emit(event, payload)
+    };
+
+    if let Err(error) = result {
+        tracing::warn!(%error, %event, "failed to emit receive event");
+    }
 }
 
 async fn wait_for_decision(state: &ServerState, session_id: &str) -> bool {

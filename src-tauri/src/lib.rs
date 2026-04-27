@@ -12,7 +12,9 @@ use anyhow::Context;
 use discovery::DiscoveryState;
 use favorites::FavoritesStore;
 use history::HistoryStore;
-use models::{AppSettings, DeviceInfo, HistoryEntry, NetworkStatus, PathEntry};
+use models::{
+    AppSettings, DeviceInfo, HistoryEntry, IncomingTransferRequest, NetworkStatus, PathEntry,
+};
 use sender::TransferCanceller;
 use settings::SettingsStore;
 use std::{
@@ -33,6 +35,7 @@ pub struct AppState {
     favorites: FavoritesStore,
     canceller: TransferCanceller,
     accepted_sessions: Arc<RwLock<HashMap<String, bool>>>,
+    pending_incoming: Arc<RwLock<HashMap<String, IncomingTransferRequest>>>,
 }
 
 #[tauri::command]
@@ -63,6 +66,19 @@ async fn get_device_info(state: State<'_, AppState>) -> Result<DeviceInfo, Strin
 }
 
 #[tauri::command]
+async fn get_pending_incoming(
+    state: State<'_, AppState>,
+) -> Result<Vec<IncomingTransferRequest>, String> {
+    Ok(state
+        .pending_incoming
+        .read()
+        .await
+        .values()
+        .cloned()
+        .collect())
+}
+
+#[tauri::command]
 async fn send_files(
     app: tauri::AppHandle,
     state: State<'_, AppState>,
@@ -87,7 +103,8 @@ async fn accept_transfer(state: State<'_, AppState>, session_id: String) -> Resu
         .accepted_sessions
         .write()
         .await
-        .insert(session_id, true);
+        .insert(session_id.clone(), true);
+    state.pending_incoming.write().await.remove(&session_id);
     Ok(())
 }
 
@@ -97,7 +114,8 @@ async fn reject_transfer(state: State<'_, AppState>, session_id: String) -> Resu
         .accepted_sessions
         .write()
         .await
-        .insert(session_id, false);
+        .insert(session_id.clone(), false);
+    state.pending_incoming.write().await.remove(&session_id);
     Ok(())
 }
 
@@ -343,17 +361,19 @@ pub fn run() {
             let history = HistoryStore::open(db.open_tree("history")?);
             let favorites = FavoritesStore::open(db.open_tree("favorites")?);
             let discovery = DiscoveryState::new(settings.device_id.clone());
+            let accepted_sessions = Arc::new(RwLock::new(HashMap::new()));
+            let pending_incoming = Arc::new(RwLock::new(HashMap::new()));
             let state = AppState {
                 settings: settings.clone(),
                 discovery: discovery.clone(),
                 history: history.clone(),
                 favorites: favorites.clone(),
                 canceller: TransferCanceller::default(),
-                accepted_sessions: Arc::new(RwLock::new(HashMap::new())),
+                accepted_sessions: accepted_sessions.clone(),
+                pending_incoming: pending_incoming.clone(),
             };
             let app_handle = app.handle().clone();
             let server_handle = app.handle().clone();
-            let accepted_sessions = state.accepted_sessions.clone();
             tauri::async_runtime::spawn(async move {
                 let device = discovery.local_device(&settings).await;
                 let server_state = server::ServerState {
@@ -365,6 +385,7 @@ pub fn run() {
                     sessions: Arc::new(RwLock::new(HashMap::new())),
                     sessions_senders: Arc::new(RwLock::new(HashMap::new())),
                     sessions_completed: Arc::new(RwLock::new(HashMap::new())),
+                    pending_incoming,
                     accepted_sessions,
                 };
                 match server::start_server(server_state).await {
@@ -394,6 +415,7 @@ pub fn run() {
             scan_network_devices,
             set_receive_mode_active,
             get_device_info,
+            get_pending_incoming,
             send_files,
             cancel_transfer,
             accept_transfer,

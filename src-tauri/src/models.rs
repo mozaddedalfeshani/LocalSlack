@@ -128,6 +128,14 @@ pub struct PrepareUploadRequest {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
+pub struct IncomingTransferRequest {
+    pub session_id: String,
+    pub sender: DeviceInfo,
+    pub files: Vec<FileMetadata>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct AppSettings {
     pub device_name: String,
     #[serde(default = "default_device_emoji")]

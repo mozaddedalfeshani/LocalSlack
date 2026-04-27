@@ -2,9 +2,21 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect } from "react";
 import { useTransferStore } from "../store/transferStore";
+import { useUiStore } from "../store/uiStore";
 import type { DeviceInfo, IncomingTransferRequest, ReceivingTransfer, TransferProgress } from "../types";
 import { pickDesktopFiles } from "../utils/fileUtils";
 import { showIncomingAttention } from "../utils/windowAttention";
+
+function showRequest(request: IncomingTransferRequest) {
+  const current = useTransferStore.getState().incoming;
+  useTransferStore.getState().setIncoming(request);
+  useUiStore.getState().setView("receive");
+  if (current?.sessionId === request.sessionId) return;
+  void showIncomingAttention(
+    `${request.sender.name} wants to send files`,
+    request.files.map((file) => file.name).join(", ")
+  );
+}
 
 export function useTransfer() {
   const store = useTransferStore();
@@ -13,16 +25,13 @@ export function useTransfer() {
     const unlisten = listen<TransferProgress>("transfer-progress", (event) => store.setProgress(event.payload));
 
     const unlistenIncoming = listen<IncomingTransferRequest>("incoming-request", (event) => {
-      store.setIncoming(event.payload);
-      void showIncomingAttention(
-        `${event.payload.sender.name} wants to send files`,
-        event.payload.files.map((file) => file.name).join(", ")
-      );
+      showRequest(event.payload);
     });
 
     const unlistenReceiving = listen<ReceivingTransfer>("receiving-started", (event) => {
       store.setIncoming(undefined);
       store.setReceiving(event.payload);
+      useUiStore.getState().setView("receive");
       void showIncomingAttention(
         `Receiving from ${event.payload.sender.name}`,
         `${event.payload.files.length} item${event.payload.files.length === 1 ? "" : "s"} incoming`
@@ -47,7 +56,16 @@ export function useTransfer() {
       }, 3000);
     });
 
+    let cancelled = false;
+    void invoke<IncomingTransferRequest[]>("get_pending_incoming")
+      .then((requests) => {
+        if (cancelled || requests.length === 0) return;
+        showRequest(requests[0]);
+      })
+      .catch(() => undefined);
+
     return () => {
+      cancelled = true;
       unlisten.then((fn) => fn()).catch(() => undefined);
       unlistenIncoming.then((fn) => fn()).catch(() => undefined);
       unlistenReceiving.then((fn) => fn()).catch(() => undefined);
