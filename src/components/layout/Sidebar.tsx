@@ -1,5 +1,6 @@
 import { Send, Settings, Wifi } from "lucide-react";
 import type { DeviceInfo } from "../../types";
+import logo from "../../assets/logo.png";
 
 interface Props {
   devices: DeviceInfo[];
@@ -21,7 +22,10 @@ export function Sidebar(props: Props) {
   ];
   return (
     <aside className="flex w-[255px] shrink-0 flex-col bg-bg-secondary px-3 py-10 text-text-primary">
-      <h1 className="mb-12 px-8 text-3xl font-semibold tracking-tight">SwiftShare</h1>
+      <div className="mb-12 flex items-center gap-3 px-6">
+        <img src={logo} alt="SwiftShare Logo" className="h-10 w-10" />
+        <h1 className="text-2xl font-bold tracking-tight">SwiftShare</h1>
+      </div>
       <nav className="space-y-3">
         {items.map((item) => {
           const Icon = item.icon;

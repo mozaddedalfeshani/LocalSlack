@@ -1,4 +1,5 @@
 import { Clock3, Info } from "lucide-react";
+import logo from "../../assets/logo.png";
 
 type QuickSaveMode = "off" | "favorites" | "on";
 
@@ -34,9 +35,10 @@ export function ReceiveHome({
         </button>
       </div>
 
-      <div className="mb-8 grid h-44 w-44 place-items-center rounded-full">
-        <div className="receive-orbit">
-          <div className="receive-core">{emoji || "🚀"}</div>
+      <div className="relative mb-8 grid h-44 w-44 place-items-center">
+        <div className="receive-orbit absolute inset-0" />
+        <div className="receive-core flex items-center justify-center overflow-hidden bg-transparent">
+          <img src={logo} alt="SwiftShare" className="h-full w-full object-cover" />
         </div>
       </div>
       <h2 className="text-5xl font-light text-text-primary">{deviceName || "SwiftShare Device"}</h2>

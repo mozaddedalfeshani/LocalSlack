@@ -87,9 +87,8 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 }
 
 .receive-orbit {
-  position: relative;
-  width: 152px;
-  height: 152px;
+  position: absolute;
+  inset: 0;
   border-radius: 999px;
   background: conic-gradient(from 8deg, rgb(var(--accent)) 0 28deg, transparent 28deg 58deg, rgb(var(--accent)) 58deg 88deg, transparent 88deg 118deg, rgb(var(--accent)) 118deg 148deg, transparent 148deg 178deg, rgb(var(--accent)) 178deg 208deg, transparent 208deg 238deg, rgb(var(--accent)) 238deg 268deg, transparent 268deg 298deg, rgb(var(--accent)) 298deg 328deg, transparent 328deg 360deg);
   animation: orbit-spin 12s linear infinite;
@@ -105,7 +104,7 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 
 .receive-core {
   position: absolute;
-  inset: 42px;
+  inset: 38px;
   z-index: 1;
   border-radius: 999px;
   background: rgb(var(--accent));
