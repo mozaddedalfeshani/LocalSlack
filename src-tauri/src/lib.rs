@@ -329,7 +329,7 @@ pub fn run() {
             let db = sled::open(db_dir).context("failed to open app database")?;
             let history = HistoryStore::open(db.open_tree("history")?);
             let favorites = FavoritesStore::open(db.open_tree("favorites")?);
-            let discovery = DiscoveryState::new();
+            let discovery = DiscoveryState::new(settings.device_id.clone());
             let state = AppState {
                 settings: settings.clone(),
                 discovery: discovery.clone(),
@@ -348,7 +348,9 @@ pub fn run() {
                     device,
                     settings: settings.clone(),
                     history,
+                    favorites: favorites.clone(),
                     sessions: Arc::new(RwLock::new(HashMap::new())),
+                    sessions_senders: Arc::new(RwLock::new(HashMap::new())),
                     accepted_sessions,
                 };
                 match server::start_server(server_state).await {
@@ -359,8 +361,10 @@ pub fn run() {
                         {
                             tracing::error!(%error, "failed to start discovery");
                         }
-                        if let Err(error) = discovery.apply_receive_visibility(&settings).await {
-                            tracing::error!(%error, "failed to apply receive visibility");
+                        // Always advertise on the network after server starts;
+                        // settings.hidden controls actual visibility
+                        if let Err(error) = discovery.set_receive_visible(&settings, true).await {
+                            tracing::error!(%error, "failed to start mDNS advertisement");
                         }
                     }
                     Err(error) => {

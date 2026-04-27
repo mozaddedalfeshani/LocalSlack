@@ -25,9 +25,9 @@ pub struct DiscoveryState {
 }
 
 impl DiscoveryState {
-    pub fn new() -> Self {
+    pub fn new(device_id: String) -> Self {
         Self {
-            local_device_id: Uuid::new_v4().to_string(),
+            local_device_id: device_id,
             devices: Arc::new(RwLock::new(HashMap::new())),
             mdns_names: Arc::new(RwLock::new(HashMap::new())),
             mdns: Arc::new(RwLock::new(None)),

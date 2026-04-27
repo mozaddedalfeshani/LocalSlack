@@ -60,6 +60,7 @@ export interface ClipboardPayload {
 export interface AppSettings {
   deviceName: string;
   deviceEmoji: string;
+  deviceId: string;
   savePath: string;
   quickSave: boolean;
   quickSaveMode: "off" | "favorites" | "on";

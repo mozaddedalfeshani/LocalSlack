@@ -117,6 +117,9 @@ pub struct AppSettings {
     pub device_name: String,
     #[serde(default = "default_device_emoji")]
     pub device_emoji: String,
+    /// Stable unique ID generated once on first launch
+    #[serde(default = "default_device_id")]
+    pub device_id: String,
     pub save_path: String,
     pub quick_save: bool,
     #[serde(default = "default_quick_save_mode")]
@@ -136,6 +139,10 @@ pub struct AppSettings {
 
 fn default_quick_save_mode() -> String {
     "off".to_string()
+}
+
+fn default_device_id() -> String {
+    Uuid::new_v4().to_string()
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]

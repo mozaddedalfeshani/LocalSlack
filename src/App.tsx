@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useDevices } from "./hooks/useDevices";
 import { useFavorites } from "./hooks/useFavorites";
 import { useSettings } from "./hooks/useSettings";
@@ -22,8 +22,9 @@ export default function App() {
   const favorites = useFavorites();
   const ui = useUiStore();
   useEffect(() => {
-    void invoke("set_receive_mode_active", { active: ui.view === "receive" });
-  }, [ui.view]);
+    // Always advertise on the network; use settings.hidden to go invisible
+    void invoke("set_receive_mode_active", { active: !settings.settings.hidden });
+  }, [settings.settings.hidden]);
   const toggleFavorite = async (device: typeof devices.devices[number]) => {
     const isFavorite = !device.isFavorite;
     if (isFavorite) await favorites.add(device);
@@ -33,13 +34,21 @@ export default function App() {
     devices.setDevices(devices.devices.map(update));
     if (devices.selectedDevice?.id === device.id) devices.selectDevice(update(devices.selectedDevice));
   };
-  const setQuickSaveMode = (quickSaveMode: typeof settings.settings.quickSaveMode) => {
+  const setQuickSaveMode = useCallback((quickSaveMode: typeof settings.settings.quickSaveMode) => {
     void settings.save({
       ...settings.settings,
       quickSaveMode,
       quickSave: quickSaveMode === "on"
     });
-  };
+  }, [settings]);
+
+  const handleAcceptIncoming = useCallback(() => {
+    void transfer.acceptIncoming();
+  }, [transfer.acceptIncoming]);
+
+  const handleRejectIncoming = useCallback(() => {
+    void transfer.rejectIncoming();
+  }, [transfer.rejectIncoming]);
   const content = ui.view === "receive" ? (
     <ReceiveHome
       deviceName={settings.settings.deviceName}
@@ -97,8 +106,8 @@ export default function App() {
       <ReceiveDialog
         sender={transfer.incoming?.sender}
         files={transfer.incoming?.files ?? []}
-        onAccept={transfer.acceptIncoming}
-        onReject={transfer.rejectIncoming}
+        onAccept={handleAcceptIncoming}
+        onReject={handleRejectIncoming}
       />
       <ReceivingFilesDialog
         transfer={transfer.receiving}

@@ -7,6 +7,8 @@ use tokio::sync::RwLock;
 pub struct SettingsStore {
     path: PathBuf,
     settings: Arc<RwLock<AppSettings>>,
+    /// Cached device_id for sync access at startup
+    pub device_id: String,
 }
 
 impl SettingsStore {
@@ -29,6 +31,7 @@ impl SettingsStore {
                 .context("failed to write migrated settings")?;
         }
         Ok(Self {
+            device_id: settings.device_id.clone(),
             path,
             settings: Arc::new(RwLock::new(settings)),
         })
@@ -63,6 +66,7 @@ pub fn default_settings() -> AppSettings {
     AppSettings {
         device_name: hostname(),
         device_emoji: generate_device_emoji(),
+        device_id: uuid::Uuid::new_v4().to_string(),
         save_path: save_base.join("SwiftShare").to_string_lossy().to_string(),
         quick_save: false,
         quick_save_mode: "off".to_string(),
@@ -81,6 +85,19 @@ pub fn default_settings() -> AppSettings {
 }
 
 fn hostname() -> String {
+    // On macOS, $HOSTNAME is not set in GUI app environments — use scutil instead
+    #[cfg(target_os = "macos")]
+    {
+        if let Ok(output) = std::process::Command::new("scutil")
+            .args(["--get", "ComputerName"])
+            .output()
+        {
+            let name = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if !name.is_empty() {
+                return name;
+            }
+        }
+    }
     let name = std::env::var("HOSTNAME")
         .or_else(|_| std::env::var("COMPUTERNAME"))
         .unwrap_or_else(|_| "SwiftShare Device".to_string());

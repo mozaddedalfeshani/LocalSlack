@@ -11,6 +11,7 @@ interface TransferStore {
   addFiles: (files: SelectedFile[]) => void;
   removeFile: (id: string) => void;
   clearFiles: () => void;
+  clearProgress: () => void;
   setProgress: (progress: TransferProgress) => void;
   setIncoming: (incoming?: IncomingTransferRequest) => void;
   setReceiving: (receiving?: ReceivingTransfer) => void;
@@ -24,6 +25,7 @@ export const useTransferStore = create<TransferStore>((set) => ({
   addFiles: (files) => set((state) => ({ files: [...state.files, ...files] })),
   removeFile: (id) => set((state) => ({ files: state.files.filter((item) => item.id !== id) })),
   clearFiles: () => set({ files: [] }),
+  clearProgress: () => set({ progress: [] }),
   setProgress: (incoming) =>
     set((state) => ({
       progress: [...state.progress.filter((item) => item.fileId !== incoming.fileId), incoming]

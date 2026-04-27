@@ -4,6 +4,7 @@ import type { AppSettings } from "../types";
 export const defaultSettings: AppSettings = {
   deviceName: "SwiftShare Device",
   deviceEmoji: "🚀",
+  deviceId: "",
   savePath: "",
   quickSave: false,
   quickSaveMode: "off",

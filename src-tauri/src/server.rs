@@ -1,5 +1,6 @@
 use crate::{
     clipboard,
+    favorites::FavoritesStore,
     history::HistoryStore,
     models::{
         now_unix, ClipboardPayload, DeviceInfo, FileMetadata, HistoryEntry, PrepareUploadRequest,
@@ -32,7 +33,9 @@ pub struct ServerState {
     pub device: DeviceInfo,
     pub settings: SettingsStore,
     pub history: HistoryStore,
+    pub favorites: FavoritesStore,
     pub sessions: Arc<RwLock<HashMap<String, Vec<FileMetadata>>>>,
+    pub sessions_senders: Arc<RwLock<HashMap<String, DeviceInfo>>>,
     pub accepted_sessions: Arc<RwLock<HashMap<String, bool>>>,
 }
 
@@ -102,8 +105,18 @@ async fn prepare_upload(
         .write()
         .await
         .insert(session_id.clone(), files.clone());
+    // Store sender info so history can record the correct name
+    state
+        .sessions_senders
+        .write()
+        .await
+        .insert(session_id.clone(), sender.clone());
     let settings = state.settings.get().await;
     let mut accepted = settings.quick_save || settings.quick_save_mode == "on";
+    // Favorites mode: auto-accept only if sender is in favorites
+    if !accepted && settings.quick_save_mode == "favorites" {
+        accepted = state.favorites.is_favorite(&sender.id).unwrap_or(false);
+    }
     if !accepted {
         let _ = state.app.emit(
             "incoming-request",
@@ -117,6 +130,7 @@ async fn prepare_upload(
     }
     if !accepted {
         state.sessions.write().await.remove(&session_id);
+        state.sessions_senders.write().await.remove(&session_id);
     } else {
         let _ = state.app.emit(
             "receiving-started",
@@ -235,12 +249,19 @@ async fn save_upload(
         state.app.emit("transfer-failed", session_id)?;
         anyhow::bail!("sha256 verification failed");
     }
+    let sender_name = state
+        .sessions_senders
+        .read()
+        .await
+        .get(&session_id)
+        .map(|s| s.name.clone())
+        .unwrap_or_else(|| "Unknown".to_string());
     let entry = HistoryEntry {
         id: Uuid::new_v4().to_string(),
         file_name: file_meta.name.clone(),
         file_size: written,
         direction: TransferDirection::Received,
-        device_name: state.device.name.clone(),
+        device_name: sender_name,
         file_path: output_path.to_string_lossy().to_string(),
         timestamp: now_unix(),
         status: TransferStatus::Completed,
@@ -290,6 +311,7 @@ async fn cancel(
     Path(session_id): Path<String>,
 ) -> impl IntoResponse {
     state.sessions.write().await.remove(&session_id);
+    state.sessions_senders.write().await.remove(&session_id);
     let _ = state.app.emit("transfer-failed", session_id);
     StatusCode::NO_CONTENT
 }
