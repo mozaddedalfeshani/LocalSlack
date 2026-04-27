@@ -14,7 +14,7 @@ use std::{
     },
     time::Instant,
 };
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::{fs::File, io::AsyncReadExt};
 use uuid::Uuid;
 
@@ -121,9 +121,9 @@ pub async fn send_files(
             timestamp: now_unix(),
             status: TransferStatus::Completed,
         };
-        let _ = app.emit("history-entry", entry);
+        let _ = emit_event(&app, "history-entry", entry);
     }
-    app.emit("transfer-complete", session_id)?;
+    emit_event(&app, "transfer-complete", session_id)?;
     Ok(())
 }
 
@@ -165,7 +165,7 @@ async fn stream_one_file(
                             speed_bps: speed,
                             eta_seconds: if speed > 0.0 { remaining / speed } else { 0.0 },
                         };
-                        let _ = emit_app.emit("transfer-progress", progress);
+                        let _ = emit_event(&emit_app, "transfer-progress", progress);
                         if tx.send(Ok(buffer)).await.is_err() {
                             break;
                         }
@@ -219,4 +219,17 @@ pub async fn sha256_file(path: &PathBuf) -> Result<String> {
         hasher.update(&buffer[..read]);
     }
     Ok(format!("{:x}", hasher.finalize()))
+}
+
+fn emit_event<T: serde::Serialize + Clone>(
+    app: &AppHandle,
+    event: &str,
+    payload: T,
+) -> Result<(), tauri::Error> {
+    if let Some(window) = app.get_webview_window("main") {
+        if window.emit(event, payload.clone()).is_ok() {
+            return Ok(());
+        }
+    }
+    app.emit(event, payload)
 }
