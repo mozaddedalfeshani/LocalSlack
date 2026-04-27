@@ -1,8 +1,9 @@
-import { Clipboard, FileText, Folder, List } from "lucide-react";
 import type { DeviceInfo, SelectedFile, TransferProgress as Progress } from "../../types";
-import { DeviceCard } from "../devices/DeviceCard";
-import { FileDropZone } from "../transfer/FileDropZone";
 import { TransferProgress } from "../transfer/TransferProgress";
+import { DiscoveryRadar } from "./DiscoveryRadar";
+import { FilePreview } from "../transfer/FilePreview";
+import { ImagePreview } from "../transfer/ImagePreview";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   devices: DeviceInfo[];
@@ -24,69 +25,61 @@ interface Props {
 }
 
 export function SendHome(props: Props) {
+  const { t } = useTranslation();
+  const canSend = Boolean(props.selectedDevice && props.files.length);
+
   return (
-    <section className="w-full py-6">
-      <h2 className="mb-4 text-lg font-bold text-[#dce8e4]">Selection</h2>
-      <div className="mb-7 grid grid-cols-4 gap-3">
-        <button className="selection-tile" type="button" onClick={props.onPickFiles}>
-          <FileText size={30} strokeWidth={2.8} />
-          <span>File</span>
-        </button>
-        <button className="selection-tile" type="button" onClick={props.onPickFolder}>
-          <Folder size={31} strokeWidth={2.8} />
-          <span>Folder</span>
-        </button>
-        <button className="selection-tile" type="button" onClick={props.onClipboard}>
-          <List size={31} strokeWidth={2.8} />
-          <span>Text</span>
-        </button>
-        <button className="selection-tile" type="button" onClick={props.onClipboard}>
-          <Clipboard size={31} strokeWidth={2.8} />
-          <span>Paste</span>
-        </button>
-      </div>
+    <section className="flex w-full flex-col gap-8 py-4">
+      {/* Interactive Radar Discovery Area */}
+      <DiscoveryRadar
+        devices={props.devices}
+        selectedDevice={props.selectedDevice}
+        onSelect={props.onSelect}
+        onFiles={props.onFiles}
+        onPickFiles={props.onPickFiles}
+        onPickFolder={props.onPickFolder}
+        onClipboard={props.onClipboard}
+      />
 
-      <div className="mb-7">
-        <FileDropZone
-          files={props.files}
-          selectedDevice={props.selectedDevice}
-          error={props.transferError}
-          onFiles={props.onFiles}
-          onPickFiles={props.onPickFiles}
-          onPickFolder={props.onPickFolder}
-          onRemove={props.onRemoveFile}
-          onSend={props.onSend}
-        />
-      </div>
-
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-bold text-[#dce8e4]">Nearby devices</h2>
-        <p className="text-sm text-[#8fa59f]">{props.devices.length} found</p>
-      </div>
-      <div>
-        {props.loading && <div className="device-skeleton" />}
-        {props.error && <p className="text-sm text-error">{props.error}</p>}
-        {!props.loading && !props.error && props.devices.length === 0 && (
-          <div className="py-8 text-center">
-            <p className="font-bold text-[#dce8e4]">No devices found</p>
-            <p className="mt-2 text-sm text-[#8fa59f]">Open SwiftShare on another device in the same Wi-Fi network.</p>
+      {/* Selected Files and Actions */}
+      {props.files.length > 0 && (
+        <div className="space-y-6 rounded-3xl border border-border/40 bg-bg-surface/50 p-6 backdrop-blur-sm">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-text-primary">Ready to Send</h2>
+            <button
+              type="button"
+              className="primary-button h-11 px-8 text-base shadow-lg shadow-accent/20"
+              disabled={!canSend}
+              onClick={props.onSend}
+            >
+              {props.selectedDevice ? t("transfer.send", { device: props.selectedDevice.name }) : "Select a device"}
+            </button>
           </div>
-        )}
-        <div className="space-y-3">
-          {props.devices.map((device) => (
-            <DeviceCard
-              key={device.id}
-              device={device}
-              selected={props.selectedDevice?.id === device.id}
-              onSelect={props.onSelect}
-              onToggleFavorite={props.onToggleFavorite}
-            />
-          ))}
-        </div>
-      </div>
 
-      <p className="mt-8 text-center text-sm text-[#8e9d98]">Select files, choose one device, then send. Use Group Share for multiple devices.</p>
-      <TransferProgress items={props.progress} onCancel={props.onCancel} />
+          <ImagePreview files={props.files} />
+          <FilePreview files={props.files} onRemove={props.onRemoveFile} />
+        </div>
+      )}
+
+      {/* Progress and Feedback */}
+      {(props.transferError || props.error) && (
+        <p className="rounded-2xl border border-error/30 bg-error/10 p-4 text-sm text-error">
+          {props.transferError || props.error}
+        </p>
+      )}
+
+      {props.progress.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-lg font-bold text-text-primary">Active Transfers</h2>
+          <TransferProgress items={props.progress} onCancel={props.onCancel} />
+        </div>
+      )}
+
+      {!props.loading && !props.error && props.devices.length === 0 && (
+        <p className="text-center text-sm text-text-muted">
+          Looking for nearby devices... Make sure SwiftShare is open on other devices.
+        </p>
+      )}
     </section>
   );
 }
