@@ -22,7 +22,7 @@ export function TransferActivityDialog({ outgoing, receiving, progress, onCancel
   if (!mode) return null;
 
   const peerName = receiving?.sender.name ?? outgoing?.target.name ?? "Device";
-  const sessionId = receiving?.sessionId ?? progress[0]?.sessionId;
+  const sessionId = receiving?.sessionId ?? outgoing?.sessionId ?? progress[0]?.sessionId;
   const files: FileRow[] = receiving
     ? receiving.files.map((file) => ({
         id: file.id,
@@ -65,9 +65,9 @@ export function TransferActivityDialog({ outgoing, receiving, progress, onCancel
           <div className="flex items-center gap-2">
             <Icon size={19} className="text-accent" />
             <h2 className="text-lg font-semibold text-text-primary">
-              {done ? "Transfer finished" : mode === "receiving" ? "Receiving files" : "Sending files"}
-            </h2>
-          </div>
+            {done ? "Transfer finished" : mode === "receiving" ? "Receiving files" : sessionId ? "Sending files" : "Preparing transfer"}
+          </h2>
+        </div>
           <p className="truncate text-sm text-text-muted">
             {mode === "receiving" ? "From" : "To"} {peerName}
           </p>

@@ -44,6 +44,12 @@ export interface TransferProgress {
   etaSeconds: number;
 }
 
+export interface TransferStarted {
+  sessionId: string;
+  peerName: string;
+  fileCount: number;
+}
+
 export interface IncomingTransferRequest {
   sessionId: string;
   sender: DeviceInfo;
@@ -55,6 +61,7 @@ export type ReceivingTransfer = IncomingTransferRequest;
 export interface OutgoingTransfer {
   target: DeviceInfo;
   files: SelectedFile[];
+  sessionId?: string;
 }
 
 export interface HistoryEntry {

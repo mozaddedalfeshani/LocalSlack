@@ -90,6 +90,14 @@ pub struct TransferProgress {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
+pub struct TransferStarted {
+    pub session_id: String,
+    pub peer_name: String,
+    pub file_count: usize,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct TransferSession {
     pub id: String,
     pub files: Vec<FileMetadata>,

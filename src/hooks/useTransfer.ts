@@ -3,7 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { useEffect } from "react";
 import { useTransferStore } from "../store/transferStore";
 import { useUiStore } from "../store/uiStore";
-import type { DeviceInfo, IncomingTransferRequest, ReceivingTransfer, TransferProgress } from "../types";
+import type { DeviceInfo, IncomingTransferRequest, ReceivingTransfer, TransferProgress, TransferStarted } from "../types";
 import { pickDesktopFiles } from "../utils/fileUtils";
 import { showIncomingAttention } from "../utils/windowAttention";
 
@@ -36,6 +36,10 @@ export function useTransfer() {
     };
 
     const unlisten = listen<TransferProgress>("transfer-progress", (event) => store.setProgress(event.payload));
+
+    const unlistenStarted = listen<TransferStarted>("transfer-started", (event) => {
+      useTransferStore.getState().setOutgoingSessionId(event.payload.sessionId);
+    });
 
     const unlistenIncoming = listen<IncomingTransferRequest>("incoming-request", (event) => {
       showRequest(event.payload);
@@ -77,6 +81,7 @@ export function useTransfer() {
     return () => {
       window.clearInterval(pollId);
       unlisten.then((fn) => fn()).catch(() => undefined);
+      unlistenStarted.then((fn) => fn()).catch(() => undefined);
       unlistenIncoming.then((fn) => fn()).catch(() => undefined);
       unlistenReceiving.then((fn) => fn()).catch(() => undefined);
       unlistenComplete.then((fn) => fn()).catch(() => undefined);

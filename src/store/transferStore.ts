@@ -17,6 +17,7 @@ interface TransferStore {
   setIncoming: (incoming?: IncomingTransferRequest) => void;
   setReceiving: (receiving?: ReceivingTransfer) => void;
   setOutgoing: (outgoing?: OutgoingTransfer) => void;
+  setOutgoingSessionId: (sessionId: string) => void;
   setError: (error?: string) => void;
   setSuccess: (success?: string) => void;
 }
@@ -38,6 +39,10 @@ export const useTransferStore = create<TransferStore>((set) => ({
   setIncoming: (incoming) => set({ incoming }),
   setReceiving: (receiving) => set({ receiving }),
   setOutgoing: (outgoing) => set({ outgoing }),
+  setOutgoingSessionId: (sessionId) =>
+    set((state) =>
+      state.outgoing ? { outgoing: { ...state.outgoing, sessionId } } : state
+    ),
   setError: (error) => set({ error }),
   setSuccess: (success) => set({ success })
 }));

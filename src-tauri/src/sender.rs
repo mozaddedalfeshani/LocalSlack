@@ -1,6 +1,6 @@
 use crate::models::{
     now_unix, DeviceInfo, FileMetadata, HistoryEntry, PrepareUploadRequest, PrepareUploadResponse,
-    TransferDirection, TransferProgress, TransferStatus,
+    TransferDirection, TransferProgress, TransferStarted, TransferStatus,
 };
 use anyhow::{anyhow, Context, Result};
 use futures_util::StreamExt;
@@ -96,6 +96,15 @@ pub async fn send_files(
         return Err(anyhow!("transfer rejected by target"));
     }
     let session_id = prepare.session_id;
+    let _ = emit_event(
+        &app,
+        "transfer-started",
+        TransferStarted {
+            session_id: session_id.clone(),
+            peer_name: target.name.clone(),
+            file_count: files.len(),
+        },
+    );
     let cancel_flag = canceller.create(&session_id).await;
 
     for (path, file) in file_paths.iter().zip(files.iter()) {
