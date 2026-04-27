@@ -8,7 +8,7 @@ use std::collections::HashMap;
 
 #[tokio::test]
 async fn test_device_discovery_and_timeout() {
-    let discovery = DiscoveryState::new();
+    let discovery = DiscoveryState::new("local-device".into());
     discovery
         .upsert_peer(DeviceInfo {
             id: "peer".into(),
@@ -73,7 +73,7 @@ fn test_device_info_fields() {
 
 #[test]
 fn test_service_info_maps_to_device() {
-    let discovery = DiscoveryState::new();
+    let discovery = DiscoveryState::new("local-device".into());
     let mut props = HashMap::new();
     props.insert("id".to_string(), "peer-id".to_string());
     props.insert("name".to_string(), "Linux Laptop".to_string());

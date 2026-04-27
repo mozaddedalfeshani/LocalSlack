@@ -33,16 +33,22 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "deb": {
-      "depends": [
-        "libgtk-3-0",
-        "libwebkit2gtk-4.0-37",
-        "libappindicator3-1",
-        "libavahi-client3",
-        "libxcb1",
-        "libx11-6",
-        "zenity"
-      ]
+    "linux": {
+      "deb": {
+        "depends": [
+          "libgtk-3-0",
+          "libwebkit2gtk-4.1-0 | libwebkit2gtk-4.0-37",
+          "libayatana-appindicator3-1 | libappindicator3-1",
+          "libxcb1",
+          "libx11-6",
+          "libavahi-client3",
+          "zenity"
+        ],
+        "recommends": ["avahi-daemon"]
+      }
+    },
+    "macOS": {
+      "infoPlist": "Info.plist"
     }
   }
 }

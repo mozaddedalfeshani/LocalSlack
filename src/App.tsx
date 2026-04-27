@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useDevices } from "./hooks/useDevices";
 import { useFavorites } from "./hooks/useFavorites";
 import { useSettings } from "./hooks/useSettings";
@@ -9,11 +9,13 @@ import { ClipboardReceive } from "./components/clipboard/ClipboardReceive";
 import { ClipboardSend } from "./components/clipboard/ClipboardSend";
 import { HistoryList } from "./components/history/HistoryList";
 import { MainLayout } from "./components/layout/MainLayout";
+import { StartupNetworkDialog } from "./components/network/StartupNetworkDialog";
 import { ReceiveHome } from "./components/receive/ReceiveHome";
 import { SendHome } from "./components/send/SendHome";
 import { SettingsPage } from "./components/settings/SettingsPage";
 import { ReceiveDialog } from "./components/transfer/ReceiveDialog";
 import { ReceivingFilesDialog } from "./components/transfer/ReceivingFilesDialog";
+import type { NetworkStatus } from "./types";
 
 export default function App() {
   const devices = useDevices();
@@ -21,10 +23,33 @@ export default function App() {
   const settings = useSettings();
   const favorites = useFavorites();
   const ui = useUiStore();
+  const [networkDialogOpen, setNetworkDialogOpen] = useState(true);
+  const [networkStatus, setNetworkStatus] = useState<NetworkStatus>();
+  const [networkStatusLoading, setNetworkStatusLoading] = useState(false);
+  const [networkStatusError, setNetworkStatusError] = useState<string>();
   useEffect(() => {
     // Always advertise on the network; use settings.hidden to go invisible
     void invoke("set_receive_mode_active", { active: !settings.settings.hidden });
   }, [settings.settings.hidden]);
+
+  const refreshNetworkStatus = useCallback(async () => {
+    setNetworkStatusLoading(true);
+    setNetworkStatusError(undefined);
+    try {
+      setNetworkStatus(await invoke<NetworkStatus>("get_network_status"));
+    } catch (error) {
+      setNetworkStatusError(String(error));
+    } finally {
+      setNetworkStatusLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshNetworkStatus();
+    const timeout = window.setTimeout(() => void refreshNetworkStatus(), 1500);
+    return () => window.clearTimeout(timeout);
+  }, [refreshNetworkStatus, settings.settings.hidden]);
+
   const toggleFavorite = async (device: typeof devices.devices[number]) => {
     const isFavorite = !device.isFavorite;
     if (isFavorite) await favorites.add(device);
@@ -113,6 +138,14 @@ export default function App() {
         transfer={transfer.receiving}
         progress={transfer.progress}
         onDone={transfer.dismissReceiving}
+      />
+      <StartupNetworkDialog
+        open={networkDialogOpen}
+        status={networkStatus}
+        loading={networkStatusLoading}
+        error={networkStatusError}
+        onRefresh={refreshNetworkStatus}
+        onClose={() => setNetworkDialogOpen(false)}
       />
       {ui.toast && <div className="fixed bottom-5 right-5 rounded-md bg-bg-elevated px-4 py-3 shadow-panel">{ui.toast}</div>}
     </>

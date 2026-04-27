@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -20,6 +21,20 @@ pub struct DeviceInfo {
     pub device_type: DeviceType,
     pub is_favorite: bool,
     pub last_seen: u64,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct NetworkStatus {
+    pub device_name: String,
+    pub hidden: bool,
+    pub hosting: bool,
+    pub discovery_running: bool,
+    pub advertising: bool,
+    pub local_ips: Vec<String>,
+    pub port: u16,
+    pub service_type: String,
+    pub issues: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]

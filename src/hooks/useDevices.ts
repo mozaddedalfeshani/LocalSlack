@@ -10,7 +10,7 @@ export function useDevices() {
     store.setLoading(true);
     store.setError(undefined);
     try {
-      store.setDevices(await invoke<DeviceInfo[]>("get_devices"));
+      store.setDevices(await invoke<DeviceInfo[]>("scan_network_devices"));
     } catch (error) {
       store.setError(String(error));
     } finally {
@@ -25,6 +25,9 @@ export function useDevices() {
       .then((devices) => !disposed && store.setDevices(devices))
       .catch((error) => !disposed && store.setError(String(error)))
       .finally(() => !disposed && store.setLoading(false));
+    invoke<DeviceInfo[]>("scan_network_devices")
+      .then((devices) => !disposed && store.setDevices(devices))
+      .catch((error) => !disposed && store.setError(String(error)));
     const unlisten = listen<DeviceInfo[]>("devices-updated", (event) => store.setDevices(event.payload));
     return () => {
       disposed = true;

@@ -11,6 +11,18 @@ export interface DeviceInfo {
   lastSeen: number;
 }
 
+export interface NetworkStatus {
+  deviceName: string;
+  hidden: boolean;
+  hosting: boolean;
+  discoveryRunning: boolean;
+  advertising: boolean;
+  localIps: string[];
+  port: number;
+  serviceType: string;
+  issues: string[];
+}
+
 export interface FileMetadata {
   id: string;
   name: string;

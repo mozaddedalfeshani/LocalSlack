@@ -23,7 +23,20 @@ vi.mock("@tauri-apps/api/core", () => ({
         blockedIps: []
       });
     }
-    if (command === "get_history" || command === "get_devices" || command === "get_local_ip") return Promise.resolve([]);
+    if (command === "get_network_status") {
+      return Promise.resolve({
+        deviceName: "SwiftShare Device",
+        hidden: false,
+        hosting: true,
+        discoveryRunning: true,
+        advertising: true,
+        localIps: ["192.168.1.20"],
+        port: 53317,
+        serviceType: "_swiftshare._tcp.local.",
+        issues: []
+      });
+    }
+    if (command === "get_history" || command === "get_devices" || command === "scan_network_devices" || command === "get_local_ip") return Promise.resolve([]);
     return Promise.resolve(undefined);
   })
 }));

@@ -12,7 +12,7 @@ use anyhow::Context;
 use discovery::DiscoveryState;
 use favorites::FavoritesStore;
 use history::HistoryStore;
-use models::{AppSettings, DeviceInfo, HistoryEntry, PathEntry};
+use models::{AppSettings, DeviceInfo, HistoryEntry, NetworkStatus, PathEntry};
 use sender::TransferCanceller;
 use settings::SettingsStore;
 use std::{
@@ -38,6 +38,14 @@ pub struct AppState {
 #[tauri::command]
 async fn get_devices(state: State<'_, AppState>) -> Result<Vec<DeviceInfo>, String> {
     Ok(state.discovery.devices(&state.favorites).await)
+}
+
+#[tauri::command]
+async fn scan_network_devices(state: State<'_, AppState>) -> Result<Vec<DeviceInfo>, String> {
+    Ok(state
+        .discovery
+        .scan_local_subnets(&state.settings, &state.favorites)
+        .await)
 }
 
 #[tauri::command]
@@ -199,6 +207,11 @@ async fn open_folder(path: String) -> Result<(), String> {
 #[tauri::command]
 async fn get_local_ip() -> Result<Vec<String>, String> {
     Ok(discovery::local_ips())
+}
+
+#[tauri::command]
+async fn get_network_status(state: State<'_, AppState>) -> Result<NetworkStatus, String> {
+    Ok(state.discovery.network_status(&state.settings).await)
 }
 
 #[tauri::command]
@@ -377,6 +390,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             get_devices,
+            scan_network_devices,
             set_receive_mode_active,
             get_device_info,
             send_files,
@@ -397,6 +411,7 @@ pub fn run() {
             open_file,
             open_folder,
             get_local_ip,
+            get_network_status,
             get_path_entries,
             pick_paths
         ])

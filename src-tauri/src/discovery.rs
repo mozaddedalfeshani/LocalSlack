@@ -1,12 +1,18 @@
 use crate::{
     favorites::FavoritesStore,
-    models::{now_unix, AppSettings, DeviceInfo, DeviceType},
+    models::{now_unix, AppSettings, DeviceInfo, DeviceType, NetworkStatus},
     settings::SettingsStore,
 };
 use anyhow::Result;
+use futures_util::{stream::FuturesUnordered, StreamExt};
 use local_ip_address::list_afinet_netifas;
 use mdns_sd::{ServiceDaemon, ServiceEvent, ServiceInfo};
-use std::{collections::HashMap, net::IpAddr, sync::Arc, time::Duration};
+use std::{
+    collections::{HashMap, HashSet},
+    net::{IpAddr, Ipv4Addr},
+    sync::Arc,
+    time::Duration,
+};
 use tauri::{AppHandle, Emitter};
 use tokio::{sync::RwLock, task::JoinHandle};
 
@@ -91,6 +97,96 @@ impl DiscoveryState {
             .write()
             .await
             .retain(|_, device| device.last_seen >= cutoff);
+    }
+
+    pub async fn scan_local_subnets(
+        &self,
+        settings: &SettingsStore,
+        favorites: &FavoritesStore,
+    ) -> Vec<DeviceInfo> {
+        let settings_value = settings.get().await;
+        let local_ips = local_ipv4_addrs();
+        let local_ip_set: HashSet<Ipv4Addr> = local_ips.iter().copied().collect();
+        let port = settings_value.port;
+        let client = match reqwest::Client::builder()
+            .timeout(Duration::from_millis(650))
+            .build()
+        {
+            Ok(client) => client,
+            Err(_) => return self.devices(favorites).await,
+        };
+
+        let mut probes = FuturesUnordered::new();
+        for ip in local_ips.into_iter().take(3) {
+            let octets = ip.octets();
+            for host in 1..=254_u8 {
+                let candidate = Ipv4Addr::new(octets[0], octets[1], octets[2], host);
+                if local_ip_set.contains(&candidate) {
+                    continue;
+                }
+                let client = client.clone();
+                probes.push(async move {
+                    let url = format!("http://{candidate}:{port}/api/v1/info");
+                    let response = client.get(url).send().await.ok()?.error_for_status().ok()?;
+                    response.json::<DeviceInfo>().await.ok()
+                });
+            }
+        }
+
+        while let Some(device) = probes.next().await {
+            if let Some(device) = device {
+                if device.id != self.local_device_id {
+                    self.upsert_peer(DeviceInfo {
+                        last_seen: now_unix(),
+                        ..device
+                    })
+                    .await;
+                }
+            }
+        }
+
+        self.devices(favorites).await
+    }
+
+    pub async fn network_status(&self, settings: &SettingsStore) -> NetworkStatus {
+        let settings_value = settings.get().await;
+        let local_ips = local_ips();
+        let hosting = self.runtime_port.read().await.is_some();
+        let discovery_running = self.mdns.read().await.is_some();
+        let advertising = self.advertised_fullname.read().await.is_some() && !settings_value.hidden;
+        let port = self
+            .runtime_port
+            .read()
+            .await
+            .unwrap_or(settings_value.port);
+        let mut issues = Vec::new();
+
+        if local_ips.is_empty() {
+            issues.push("No LAN IPv4 address detected".to_string());
+        }
+        if !hosting {
+            issues.push("File receiver is not hosting yet".to_string());
+        }
+        if !discovery_running {
+            issues.push("mDNS discovery is not running yet".to_string());
+        }
+        if settings_value.hidden {
+            issues.push("Device is hidden from discovery".to_string());
+        } else if hosting && discovery_running && !advertising {
+            issues.push("Device is not advertising on the LAN".to_string());
+        }
+
+        NetworkStatus {
+            device_name: settings_value.device_name,
+            hidden: settings_value.hidden,
+            hosting,
+            discovery_running,
+            advertising,
+            local_ips,
+            port,
+            service_type: SERVICE_TYPE.to_string(),
+            issues,
+        }
     }
 
     pub async fn start(&self, app: AppHandle, favorites: FavoritesStore) -> Result<JoinHandle<()>> {
@@ -267,14 +363,36 @@ fn unregister_service(daemon: ServiceDaemon, fullname: String) {
 }
 
 pub fn local_ips() -> Vec<String> {
+    local_ipv4_addrs()
+        .into_iter()
+        .map(|ip| ip.to_string())
+        .collect()
+}
+
+fn local_ipv4_addrs() -> Vec<Ipv4Addr> {
     match list_afinet_netifas() {
         Ok(addrs) => addrs
             .into_iter()
-            .filter_map(|(_, ip)| match ip {
-                IpAddr::V4(v4) if !v4.is_loopback() => Some(v4.to_string()),
+            .filter_map(|(name, ip)| match ip {
+                IpAddr::V4(v4) if usable_lan_interface(&name) && usable_lan_ipv4(v4) => Some(v4),
                 _ => None,
             })
             .collect(),
         Err(_) => Vec::new(),
     }
+}
+
+fn usable_lan_ipv4(ip: Ipv4Addr) -> bool {
+    !ip.is_loopback() && !ip.is_link_local() && !ip.is_broadcast() && !ip.is_unspecified()
+}
+
+fn usable_lan_interface(name: &str) -> bool {
+    let name = name.to_ascii_lowercase();
+    let virtual_prefixes = [
+        "awdl", "br-", "bridge", "docker", "llw", "lo", "tap", "tun", "utun", "veth", "virbr",
+        "vmnet", "wg", "zt",
+    ];
+    !virtual_prefixes
+        .iter()
+        .any(|prefix| name == *prefix || name.starts_with(prefix))
 }
