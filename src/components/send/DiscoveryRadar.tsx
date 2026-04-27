@@ -60,8 +60,8 @@ export function DiscoveryRadar({
 
   return (
     <div
-      className={`relative flex h-[540px] w-full flex-col items-center justify-center overflow-hidden rounded-[40px] border-2 transition-all duration-500 ${
-        dragging ? "border-accent bg-accent/5 scale-[0.98]" : "border-border/40 bg-bg-surface/30 shadow-2xl"
+      className={`relative flex h-[600px] w-full flex-col items-center justify-center overflow-hidden transition-all duration-500 ${
+        dragging ? "bg-accent/5 scale-[0.98]" : ""
       }`}
       onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
       onDragLeave={() => setDragging(false)}

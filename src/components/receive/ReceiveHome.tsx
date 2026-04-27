@@ -27,9 +27,9 @@ export function ReceiveHome({
   ];
 
   return (
-    <section className="flex flex-col gap-8 py-4 animate-in fade-in duration-700">
+    <section className="flex flex-col gap-8 py-4 animate-in fade-in duration-700 h-full">
       {/* Interactive Radar Reception Area */}
-      <div className="relative flex h-[540px] w-full flex-col items-center justify-center overflow-hidden rounded-[40px] border-2 border-border/40 bg-bg-surface/30 shadow-2xl">
+      <div className="relative flex h-full min-h-[600px] w-full flex-col items-center justify-center overflow-hidden transition-all duration-500">
         
         {/* Top Control Bar */}
         <div className="absolute top-8 z-20 flex gap-2 rounded-[22px] border border-border/40 bg-bg-surface/80 p-2 backdrop-blur-md shadow-lg">
