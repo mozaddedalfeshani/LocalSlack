@@ -98,6 +98,16 @@ fn hostname() -> String {
             }
         }
     }
+    // On Linux, $HOSTNAME may not be set in GUI sessions — read /etc/hostname
+    #[cfg(target_os = "linux")]
+    {
+        if let Ok(name) = std::fs::read_to_string("/etc/hostname") {
+            let trimmed = name.trim().to_string();
+            if !trimmed.is_empty() {
+                return trimmed;
+            }
+        }
+    }
     let name = std::env::var("HOSTNAME")
         .or_else(|_| std::env::var("COMPUTERNAME"))
         .unwrap_or_else(|_| "SwiftShare Device".to_string());

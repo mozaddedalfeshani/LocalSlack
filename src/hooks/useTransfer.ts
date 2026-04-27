@@ -52,7 +52,7 @@ export function useTransfer() {
     store.clearProgress(); // Clear stale bars from previous transfer
     const paths = store.files.map((item) => item.path).filter(Boolean) as string[];
     if (paths.length !== store.files.length) {
-      store.setError("Some files have no OS path. Use the File / Folder picker or drag from Finder.");
+      store.setError("Some files have no OS path. Use the File / Folder picker or drag from your File Manager.");
       return;
     }
     try {

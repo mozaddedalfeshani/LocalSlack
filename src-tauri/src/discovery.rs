@@ -9,7 +9,6 @@ use mdns_sd::{ServiceDaemon, ServiceEvent, ServiceInfo};
 use std::{collections::HashMap, net::IpAddr, sync::Arc, time::Duration};
 use tauri::{AppHandle, Emitter};
 use tokio::{sync::RwLock, task::JoinHandle};
-use uuid::Uuid;
 
 const SERVICE_TYPE: &str = "_swiftshare._tcp.local.";
 

@@ -32,6 +32,17 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "deb": {
+      "depends": [
+        "libgtk-3-0",
+        "libwebkit2gtk-4.0-37",
+        "libappindicator3-1",
+        "libavahi-client3",
+        "libxcb1",
+        "libx11-6",
+        "zenity"
+      ]
+    }
   }
 }
