@@ -20,7 +20,12 @@ use axum::{
 use futures_util::StreamExt;
 use sha2::{Digest, Sha256};
 use std::{
-    collections::HashMap, io::ErrorKind, net::SocketAddr, path::PathBuf, sync::Arc, time::Instant,
+    collections::{HashMap, HashSet},
+    io::ErrorKind,
+    net::SocketAddr,
+    path::PathBuf,
+    sync::Arc,
+    time::Instant,
 };
 use tauri::{AppHandle, Emitter};
 use tokio::{fs, io::AsyncWriteExt, sync::RwLock, time};
@@ -36,6 +41,7 @@ pub struct ServerState {
     pub favorites: FavoritesStore,
     pub sessions: Arc<RwLock<HashMap<String, Vec<FileMetadata>>>>,
     pub sessions_senders: Arc<RwLock<HashMap<String, DeviceInfo>>>,
+    pub sessions_completed: Arc<RwLock<HashMap<String, HashSet<String>>>>,
     pub accepted_sessions: Arc<RwLock<HashMap<String, bool>>>,
 }
 
@@ -267,9 +273,25 @@ async fn save_upload(
         status: TransferStatus::Completed,
     };
     state.history.save_history_entry(entry)?;
-    state
-        .app
-        .emit("transfer-complete", file_meta.name.clone())?;
+    let session_complete = {
+        let mut completed_sessions = state.sessions_completed.write().await;
+        let completed_files = completed_sessions
+            .entry(session_id.clone())
+            .or_insert_with(HashSet::new);
+        completed_files.insert(file_id.clone());
+        let session_complete =
+            !files.is_empty() && files.iter().all(|file| completed_files.contains(&file.id));
+        if session_complete {
+            completed_sessions.remove(&session_id);
+        }
+        session_complete
+    };
+
+    if session_complete {
+        state.sessions.write().await.remove(&session_id);
+        state.sessions_senders.write().await.remove(&session_id);
+        state.app.emit("transfer-complete", session_id.clone())?;
+    }
     if settings.auto_open {
         let _ = open::that(&output_path);
     }
@@ -312,6 +334,7 @@ async fn cancel(
 ) -> impl IntoResponse {
     state.sessions.write().await.remove(&session_id);
     state.sessions_senders.write().await.remove(&session_id);
+    state.sessions_completed.write().await.remove(&session_id);
     let _ = state.app.emit("transfer-failed", session_id);
     StatusCode::NO_CONTENT
 }

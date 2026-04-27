@@ -364,6 +364,7 @@ pub fn run() {
                     favorites: favorites.clone(),
                     sessions: Arc::new(RwLock::new(HashMap::new())),
                     sessions_senders: Arc::new(RwLock::new(HashMap::new())),
+                    sessions_completed: Arc::new(RwLock::new(HashMap::new())),
                     accepted_sessions,
                 };
                 match server::start_server(server_state).await {

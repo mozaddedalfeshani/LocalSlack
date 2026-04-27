@@ -14,7 +14,7 @@ import { ReceiveHome } from "./components/receive/ReceiveHome";
 import { SendHome } from "./components/send/SendHome";
 import { SettingsPage } from "./components/settings/SettingsPage";
 import { ReceiveDialog } from "./components/transfer/ReceiveDialog";
-import { ReceivingFilesDialog } from "./components/transfer/ReceivingFilesDialog";
+import { TransferActivityDialog } from "./components/transfer/TransferActivityDialog";
 import type { NetworkStatus } from "./types";
 
 export default function App() {
@@ -134,9 +134,11 @@ export default function App() {
         onAccept={handleAcceptIncoming}
         onReject={handleRejectIncoming}
       />
-      <ReceivingFilesDialog
-        transfer={transfer.receiving}
+      <TransferActivityDialog
+        outgoing={transfer.outgoing}
+        receiving={transfer.receiving}
         progress={transfer.progress}
+        onCancel={(id) => transfer.cancel(id)}
         onDone={transfer.dismissReceiving}
       />
       <StartupNetworkDialog

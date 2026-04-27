@@ -21,6 +21,7 @@ export function useTransfer() {
     });
 
     const unlistenReceiving = listen<ReceivingTransfer>("receiving-started", (event) => {
+      store.setIncoming(undefined);
       store.setReceiving(event.payload);
       void showIncomingAttention(
         `Receiving from ${event.payload.sender.name}`,
@@ -30,12 +31,20 @@ export function useTransfer() {
 
     // Auto-clear sender progress bars 2 seconds after transfer completes
     const unlistenComplete = listen<string>("transfer-complete", () => {
-      window.setTimeout(() => store.clearProgress(), 2000);
+      window.setTimeout(() => {
+        useTransferStore.getState().clearProgress();
+        useTransferStore.getState().setOutgoing(undefined);
+        useTransferStore.getState().setReceiving(undefined);
+      }, 4000);
     });
 
     // Clear progress on transfer failure too
     const unlistenFailed = listen<string>("transfer-failed", () => {
-      window.setTimeout(() => store.clearProgress(), 3000);
+      window.setTimeout(() => {
+        useTransferStore.getState().clearProgress();
+        useTransferStore.getState().setOutgoing(undefined);
+        useTransferStore.getState().setReceiving(undefined);
+      }, 3000);
     });
 
     return () => {
@@ -56,11 +65,13 @@ export function useTransfer() {
       return;
     }
     try {
+      store.setOutgoing({ target, files: [...store.files] });
       await invoke("send_files", { target, filePaths: paths });
       store.setSuccess("Transfer complete!");
     } catch (err) {
       store.setError(String(err));
       store.clearProgress();
+      store.setOutgoing(undefined);
     }
   };
 
@@ -88,7 +99,11 @@ export function useTransfer() {
     store.setIncoming(undefined);
   };
 
-  const dismissReceiving = () => store.setReceiving(undefined);
+  const dismissReceiving = () => {
+    store.setReceiving(undefined);
+    store.setOutgoing(undefined);
+    store.clearProgress();
+  };
 
   return { ...store, send, cancel, pick, acceptIncoming, rejectIncoming, dismissReceiving, clearProgress: store.clearProgress };
 }

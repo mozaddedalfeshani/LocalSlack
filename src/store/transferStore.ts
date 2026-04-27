@@ -1,11 +1,12 @@
 import { create } from "zustand";
-import type { IncomingTransferRequest, ReceivingTransfer, SelectedFile, TransferProgress } from "../types";
+import type { IncomingTransferRequest, OutgoingTransfer, ReceivingTransfer, SelectedFile, TransferProgress } from "../types";
 
 interface TransferStore {
   files: SelectedFile[];
   progress: TransferProgress[];
   incoming?: IncomingTransferRequest;
   receiving?: ReceivingTransfer;
+  outgoing?: OutgoingTransfer;
   error?: string;
   success?: string;
   addFiles: (files: SelectedFile[]) => void;
@@ -15,6 +16,7 @@ interface TransferStore {
   setProgress: (progress: TransferProgress) => void;
   setIncoming: (incoming?: IncomingTransferRequest) => void;
   setReceiving: (receiving?: ReceivingTransfer) => void;
+  setOutgoing: (outgoing?: OutgoingTransfer) => void;
   setError: (error?: string) => void;
   setSuccess: (success?: string) => void;
 }
@@ -28,10 +30,14 @@ export const useTransferStore = create<TransferStore>((set) => ({
   clearProgress: () => set({ progress: [] }),
   setProgress: (incoming) =>
     set((state) => ({
-      progress: [...state.progress.filter((item) => item.fileId !== incoming.fileId), incoming]
+      progress: [
+        ...state.progress.filter((item) => item.sessionId !== incoming.sessionId || item.fileId !== incoming.fileId),
+        incoming
+      ]
     })),
   setIncoming: (incoming) => set({ incoming }),
   setReceiving: (receiving) => set({ receiving }),
+  setOutgoing: (outgoing) => set({ outgoing }),
   setError: (error) => set({ error }),
   setSuccess: (success) => set({ success })
 }));

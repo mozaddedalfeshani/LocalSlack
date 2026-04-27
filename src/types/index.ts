@@ -52,6 +52,11 @@ export interface IncomingTransferRequest {
 
 export type ReceivingTransfer = IncomingTransferRequest;
 
+export interface OutgoingTransfer {
+  target: DeviceInfo;
+  files: SelectedFile[];
+}
+
 export interface HistoryEntry {
   id: string;
   fileName: string;

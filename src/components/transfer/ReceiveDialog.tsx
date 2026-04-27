@@ -20,7 +20,7 @@ export function ReceiveDialog({ sender, files, onAccept, onReject }: { sender?: 
   }, [onReject, seconds, sender]);
   if (!sender) return null;
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-bg-primary/80 px-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] grid place-items-center bg-bg-primary/80 px-4 backdrop-blur-sm">
       <motion.aside
         initial={{ scale: 0.96, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
