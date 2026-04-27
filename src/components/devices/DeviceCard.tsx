@@ -14,10 +14,14 @@ interface Props {
 export function DeviceCard({ device, selected, onSelect, onToggleFavorite }: Props) {
   const online = isOnline(device);
   return (
-    <motion.button
+    <motion.div
       whileHover={{ scale: 1.02 }}
-      type="button"
+      role="button"
+      tabIndex={0}
       onClick={() => onSelect?.(device)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") onSelect?.(device);
+      }}
       className={`w-full rounded-lg border p-3 text-left transition ${
         selected ? "border-[#80d8ca] bg-[#24463d]" : "border-transparent bg-[#1c332c] hover:border-[#80d8ca]/70"
       } ${online ? "" : "opacity-55"}`}
@@ -31,22 +35,21 @@ export function DeviceCard({ device, selected, onSelect, onToggleFavorite }: Pro
           </div>
           <p className="truncate text-xs text-[#8fa29d]">{device.ip}:{device.port}</p>
         </div>
-        <span
-          role="button"
-          tabIndex={0}
+        <button
+          type="button"
           aria-label={device.isFavorite ? "Remove favorite" : "Add favorite"}
           onClick={(event) => {
             event.stopPropagation();
             onToggleFavorite?.(device);
           }}
           onKeyDown={(event) => {
-            if (event.key === "Enter" || event.key === " ") onToggleFavorite?.(device);
+            event.stopPropagation();
           }}
           className="rounded-md p-1 text-text-secondary hover:bg-bg-elevated"
         >
           <Star size={18} fill={device.isFavorite ? "currentColor" : "none"} />
-        </span>
+        </button>
       </div>
-    </motion.button>
+    </motion.div>
   );
 }

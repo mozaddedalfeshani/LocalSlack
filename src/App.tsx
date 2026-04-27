@@ -1,3 +1,5 @@
+import { invoke } from "@tauri-apps/api/core";
+import { useEffect } from "react";
 import { useDevices } from "./hooks/useDevices";
 import { useFavorites } from "./hooks/useFavorites";
 import { useSettings } from "./hooks/useSettings";
@@ -19,6 +21,9 @@ export default function App() {
   const settings = useSettings();
   const favorites = useFavorites();
   const ui = useUiStore();
+  useEffect(() => {
+    void invoke("set_receive_mode_active", { active: ui.view === "receive" });
+  }, [ui.view]);
   const toggleFavorite = async (device: typeof devices.devices[number]) => {
     const isFavorite = !device.isFavorite;
     if (isFavorite) await favorites.add(device);

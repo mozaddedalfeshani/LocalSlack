@@ -1,11 +1,6 @@
 use crate::models::AppSettings;
 use anyhow::{Context, Result};
-use std::{
-    fs,
-    path::PathBuf,
-    sync::Arc,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::{fs, path::PathBuf, sync::Arc};
 use tokio::sync::RwLock;
 
 #[derive(Clone)]
@@ -19,7 +14,7 @@ impl SettingsStore {
         let dir = app_dir()?;
         fs::create_dir_all(&dir).context("failed to create SwiftShare config directory")?;
         let path = dir.join("settings.json");
-        let settings = if path.exists() {
+        let mut settings = if path.exists() {
             let bytes = fs::read(&path).context("failed to read settings")?;
             serde_json::from_slice(&bytes).unwrap_or_else(|_| default_settings())
         } else {
@@ -28,6 +23,11 @@ impl SettingsStore {
                 .context("failed to write default settings")?;
             defaults
         };
+        if is_generated_cute_name(&settings.device_name) {
+            settings.device_name = hostname();
+            fs::write(&path, serde_json::to_vec_pretty(&settings)?)
+                .context("failed to write migrated settings")?;
+        }
         Ok(Self {
             path,
             settings: Arc::new(RwLock::new(settings)),
@@ -61,7 +61,7 @@ pub fn default_settings() -> AppSettings {
         .or_else(dirs::home_dir)
         .unwrap_or_else(std::env::temp_dir);
     AppSettings {
-        device_name: generate_cute_name(),
+        device_name: hostname(),
         device_emoji: generate_device_emoji(),
         save_path: save_base.join("SwiftShare").to_string_lossy().to_string(),
         quick_save: false,
@@ -81,24 +81,41 @@ pub fn default_settings() -> AppSettings {
 }
 
 fn hostname() -> String {
-    std::env::var("HOSTNAME")
+    let name = std::env::var("HOSTNAME")
         .or_else(|_| std::env::var("COMPUTERNAME"))
-        .unwrap_or_else(|_| "SwiftShare Device".to_string())
+        .unwrap_or_else(|_| "SwiftShare Device".to_string());
+    let trimmed = name.trim();
+    if trimmed.is_empty() {
+        "SwiftShare Device".to_string()
+    } else {
+        trimmed.to_string()
+    }
 }
 
 pub fn generate_cute_name() -> String {
-    const ADJECTIVES: &[&str] = &[
-        "Bright", "Calm", "Clever", "Cozy", "Fast", "Gentle", "Happy", "Kind", "Lucky", "Mighty",
-        "Neat", "Quiet", "Rapid", "Shiny", "Sunny", "Swift",
-    ];
-    const NOUNS: &[&str] = &[
-        "Apple", "Berry", "Cloud", "Comet", "Daisy", "Falcon", "Mango", "Moon", "Nova", "Pear",
-        "Pixel", "River", "Rocket", "Star", "Stone", "Wave",
-    ];
-    let seed = identity_seed();
-    let adjective = ADJECTIVES[seed % ADJECTIVES.len()];
-    let noun = NOUNS[(seed / ADJECTIVES.len()).max(1) % NOUNS.len()];
+    let seed = hostname().bytes().fold(0usize, |acc, byte| {
+        acc.wrapping_mul(31).wrapping_add(byte as usize)
+    });
+    let adjective = CUTE_ADJECTIVES[seed % CUTE_ADJECTIVES.len()];
+    let noun = CUTE_NOUNS[(seed / CUTE_ADJECTIVES.len()).max(1) % CUTE_NOUNS.len()];
     format!("{adjective} {noun}")
+}
+
+const CUTE_ADJECTIVES: &[&str] = &[
+    "Bright", "Calm", "Clever", "Cozy", "Fast", "Gentle", "Happy", "Kind", "Lucky", "Mighty",
+    "Neat", "Quiet", "Rapid", "Shiny", "Sunny", "Swift",
+];
+
+const CUTE_NOUNS: &[&str] = &[
+    "Apple", "Berry", "Cloud", "Comet", "Daisy", "Falcon", "Mango", "Moon", "Nova", "Pear",
+    "Pixel", "River", "Rocket", "Star", "Stone", "Wave",
+];
+
+fn is_generated_cute_name(name: &str) -> bool {
+    let Some((adjective, noun)) = name.split_once(' ') else {
+        return false;
+    };
+    CUTE_ADJECTIVES.contains(&adjective) && CUTE_NOUNS.contains(&noun)
 }
 
 pub fn generate_device_emoji() -> String {
@@ -106,16 +123,8 @@ pub fn generate_device_emoji() -> String {
         "🌙", "⭐", "🚀", "🍐", "🍋", "🍉", "🫐", "🌿", "🔥", "💎", "🎧", "📡", "🧭", "⚡", "🪄",
         "🌊",
     ];
-    EMOJIS[identity_seed() % EMOJIS.len()].to_string()
-}
-
-fn identity_seed() -> usize {
-    let time_seed = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_nanos() as usize)
-        .unwrap_or(0);
-    let host_seed = hostname().bytes().fold(0usize, |acc, byte| {
+    let seed = hostname().bytes().fold(0usize, |acc, byte| {
         acc.wrapping_mul(31).wrapping_add(byte as usize)
     });
-    time_seed ^ host_seed
+    EMOJIS[seed % EMOJIS.len()].to_string()
 }

@@ -1,6 +1,6 @@
 use crate::{
     favorites::FavoritesStore,
-    models::{now_unix, DeviceInfo, DeviceType},
+    models::{now_unix, AppSettings, DeviceInfo, DeviceType},
     settings::SettingsStore,
 };
 use anyhow::Result;
@@ -19,6 +19,8 @@ pub struct DiscoveryState {
     devices: Arc<RwLock<HashMap<String, DeviceInfo>>>,
     mdns_names: Arc<RwLock<HashMap<String, String>>>,
     mdns: Arc<RwLock<Option<ServiceDaemon>>>,
+    advertised_fullname: Arc<RwLock<Option<String>>>,
+    receive_visible: Arc<RwLock<bool>>,
 }
 
 impl DiscoveryState {
@@ -28,6 +30,8 @@ impl DiscoveryState {
             devices: Arc::new(RwLock::new(HashMap::new())),
             mdns_names: Arc::new(RwLock::new(HashMap::new())),
             mdns: Arc::new(RwLock::new(None)),
+            advertised_fullname: Arc::new(RwLock::new(None)),
+            receive_visible: Arc::new(RwLock::new(false)),
         }
     }
 
@@ -52,12 +56,9 @@ impl DiscoveryState {
     pub async fn devices(&self, favorites: &FavoritesStore) -> Vec<DeviceInfo> {
         let mut merged: HashMap<String, DeviceInfo> = self.devices.read().await.clone();
         if let Ok(favorite_devices) = favorites.get_favorites() {
-            for mut favorite in favorite_devices {
+            for favorite in favorite_devices {
                 if let Some(online) = merged.get_mut(&favorite.id) {
                     online.is_favorite = true;
-                } else {
-                    favorite.is_favorite = true;
-                    merged.insert(favorite.id.clone(), favorite);
                 }
             }
         }
@@ -86,13 +87,9 @@ impl DiscoveryState {
             .retain(|_, device| device.last_seen >= cutoff);
     }
 
-    pub async fn start(
-        &self,
-        app: AppHandle,
-        settings: SettingsStore,
-        favorites: FavoritesStore,
-    ) -> Result<JoinHandle<()>> {
-        let daemon = self.register_service(&settings).await?;
+    pub async fn start(&self, app: AppHandle, favorites: FavoritesStore) -> Result<JoinHandle<()>> {
+        let daemon = ServiceDaemon::new()?;
+        *self.mdns.write().await = Some(daemon.clone());
         self.start_browser(daemon, app.clone(), favorites.clone())?;
         let state = self.clone();
         Ok(tokio::spawn(async move {
@@ -106,43 +103,63 @@ impl DiscoveryState {
         }))
     }
 
-    pub async fn register_service(&self, settings: &SettingsStore) -> Result<ServiceDaemon> {
+    pub async fn set_receive_visible(&self, settings: &SettingsStore, visible: bool) -> Result<()> {
+        *self.receive_visible.write().await = visible;
+        self.apply_receive_visibility(settings).await
+    }
+
+    pub async fn apply_receive_visibility(&self, settings: &SettingsStore) -> Result<()> {
+        let visible = *self.receive_visible.read().await;
         let settings_value = settings.get().await;
-        let daemon = ServiceDaemon::new()?;
-        if !settings_value.hidden {
-            let host = format!("{}.local.", self.local_device_id);
-            let service_name = format!("SwiftShare {}", settings_value.device_name);
-            let mut ips = local_ips();
-            if ips.is_empty() {
-                ips.push("127.0.0.1".to_string());
+        let should_advertise = visible && !settings_value.hidden;
+        let Some(daemon) = self.mdns.read().await.clone() else {
+            return Ok(());
+        };
+
+        if !should_advertise {
+            if let Some(fullname) = self.advertised_fullname.write().await.take() {
+                let _ = daemon.unregister(&fullname);
             }
-            let mut props = HashMap::new();
-            props.insert("id".to_string(), self.local_device_id.clone());
-            props.insert("name".to_string(), settings_value.device_name);
-            props.insert("emoji".to_string(), settings_value.device_emoji);
-            props.insert("device_type".to_string(), "Desktop".to_string());
-            let service = ServiceInfo::new(
-                SERVICE_TYPE,
-                &service_name,
-                &host,
-                ips.iter()
-                    .map(String::as_str)
-                    .collect::<Vec<_>>()
-                    .as_slice(),
-                settings_value.port,
-                props,
-            )?
-            .enable_addr_auto();
-            daemon.register(service)?;
+            return Ok(());
         }
-        *self.mdns.write().await = Some(daemon);
-        Ok(self
-            .mdns
-            .read()
-            .await
-            .as_ref()
-            .expect("stored mdns")
-            .clone())
+
+        let service = self.service_info(settings_value)?;
+        let fullname = service.get_fullname().to_string();
+        if self.advertised_fullname.read().await.as_deref() == Some(fullname.as_str()) {
+            return Ok(());
+        }
+        if let Some(old_fullname) = self.advertised_fullname.write().await.take() {
+            let _ = daemon.unregister(&old_fullname);
+        }
+        daemon.register(service)?;
+        *self.advertised_fullname.write().await = Some(fullname);
+        Ok(())
+    }
+
+    fn service_info(&self, settings: AppSettings) -> Result<ServiceInfo> {
+        let host = format!("{}.local.", self.local_device_id);
+        let service_name = format!("SwiftShare {}", settings.device_name);
+        let mut ips = local_ips();
+        if ips.is_empty() {
+            ips.push("127.0.0.1".to_string());
+        }
+        let mut props = HashMap::new();
+        props.insert("id".to_string(), self.local_device_id.clone());
+        props.insert("name".to_string(), settings.device_name);
+        props.insert("emoji".to_string(), settings.device_emoji);
+        props.insert("device_type".to_string(), "Desktop".to_string());
+        Ok(ServiceInfo::new(
+            SERVICE_TYPE,
+            &service_name,
+            &host,
+            ips.iter()
+                .map(String::as_str)
+                .collect::<Vec<_>>()
+                .as_slice(),
+            settings.port,
+            props,
+        )?
+        .enable_addr_auto())
     }
 
     fn start_browser(

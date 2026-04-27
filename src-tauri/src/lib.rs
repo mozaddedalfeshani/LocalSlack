@@ -41,6 +41,15 @@ async fn get_devices(state: State<'_, AppState>) -> Result<Vec<DeviceInfo>, Stri
 }
 
 #[tauri::command]
+async fn set_receive_mode_active(state: State<'_, AppState>, active: bool) -> Result<(), String> {
+    state
+        .discovery
+        .set_receive_visible(&state.settings, active)
+        .await
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
 async fn get_device_info(state: State<'_, AppState>) -> Result<DeviceInfo, String> {
     Ok(state.discovery.local_device(&state.settings).await)
 }
@@ -162,6 +171,11 @@ async fn save_settings(state: State<'_, AppState>, settings: AppSettings) -> Res
     state
         .settings
         .save(settings)
+        .await
+        .map_err(|error| error.to_string())?;
+    state
+        .discovery
+        .apply_receive_visibility(&state.settings)
         .await
         .map_err(|error| error.to_string())
 }
@@ -329,9 +343,7 @@ pub fn run() {
             let accepted_sessions = state.accepted_sessions.clone();
             tauri::async_runtime::spawn(async move {
                 let device = discovery.local_device(&settings).await;
-                let _ = discovery
-                    .start(app_handle.clone(), settings.clone(), favorites.clone())
-                    .await;
+                let _ = discovery.start(app_handle.clone(), favorites.clone()).await;
                 let server_state = server::ServerState {
                     app: server_handle,
                     device,
@@ -349,6 +361,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             get_devices,
+            set_receive_mode_active,
             get_device_info,
             send_files,
             cancel_transfer,

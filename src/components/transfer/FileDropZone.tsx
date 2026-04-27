@@ -93,7 +93,7 @@ export function FileDropZone({ files, selectedDevice, error, onFiles, onPickFile
           </button>
         </div>
         <button type="button" className="primary-button" disabled={!canSend} onClick={onSend}>
-          {selectedDevice ? t("transfer.send", { device: selectedDevice.name }) : "Select a device"}
+          {selectedDevice ? "Send" : "Select a device"}
         </button>
       </div>
       {(error || localError) && <p className="rounded-md border border-error/30 bg-error/10 p-3 text-sm text-error">{error || localError}</p>}

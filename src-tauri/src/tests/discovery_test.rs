@@ -26,6 +26,18 @@ async fn test_device_discovery_and_timeout() {
         .open()
         .expect("temporary db");
     let favorites = FavoritesStore::open(db.open_tree("favorites").expect("favorites tree"));
+    favorites
+        .add_favorite(DeviceInfo {
+            id: "offline-favorite".into(),
+            name: "Offline Favorite".into(),
+            emoji: "⭐".into(),
+            ip: "192.168.1.200".into(),
+            port: 53317,
+            device_type: DeviceType::Desktop,
+            is_favorite: false,
+            last_seen: now_unix(),
+        })
+        .expect("favorite stored");
     assert_eq!(discovery.devices(&favorites).await.len(), 1);
     discovery
         .upsert_peer(DeviceInfo {

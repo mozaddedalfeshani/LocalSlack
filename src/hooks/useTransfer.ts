@@ -4,13 +4,26 @@ import { useEffect } from "react";
 import { useTransferStore } from "../store/transferStore";
 import type { DeviceInfo, IncomingTransferRequest, ReceivingTransfer, TransferProgress } from "../types";
 import { pickDesktopFiles } from "../utils/fileUtils";
+import { showIncomingAttention } from "../utils/windowAttention";
 
 export function useTransfer() {
   const store = useTransferStore();
   useEffect(() => {
     const unlisten = listen<TransferProgress>("transfer-progress", (event) => store.setProgress(event.payload));
-    const unlistenIncoming = listen<IncomingTransferRequest>("incoming-request", (event) => store.setIncoming(event.payload));
-    const unlistenReceiving = listen<ReceivingTransfer>("receiving-started", (event) => store.setReceiving(event.payload));
+    const unlistenIncoming = listen<IncomingTransferRequest>("incoming-request", (event) => {
+      store.setIncoming(event.payload);
+      void showIncomingAttention(
+        `${event.payload.sender.name} wants to send files`,
+        event.payload.files.map((file) => file.name).join(", ")
+      );
+    });
+    const unlistenReceiving = listen<ReceivingTransfer>("receiving-started", (event) => {
+      store.setReceiving(event.payload);
+      void showIncomingAttention(
+        `Receiving from ${event.payload.sender.name}`,
+        `${event.payload.files.length} item${event.payload.files.length === 1 ? "" : "s"} incoming`
+      );
+    });
     return () => {
       unlisten.then((fn) => fn()).catch(() => undefined);
       unlistenIncoming.then((fn) => fn()).catch(() => undefined);
