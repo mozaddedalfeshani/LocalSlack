@@ -95,5 +95,5 @@ jobs:
             - No internet or central server is required for transfers.
             - Devices must be on the same local network.
             - Repository: https://github.com/mozaddedalfeshani/swiftshare
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
