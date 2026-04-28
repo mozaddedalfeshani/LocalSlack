@@ -14,8 +14,8 @@ import { ReceiveHome } from "./components/receive/ReceiveHome";
 import { SendHome } from "./components/send/SendHome";
 import { SettingsPage } from "./components/settings/SettingsPage";
 import { ReceiveDialog } from "./components/transfer/ReceiveDialog";
-import { TransferActivityDialog } from "./components/transfer/TransferActivityDialog";
-import type { NetworkStatus } from "./types";
+import { ProgressPage } from "./components/transfer/ProgressPage";
+import type { DeviceInfo, NetworkStatus } from "./types";
 
 export default function App() {
   const devices = useDevices();
@@ -28,7 +28,6 @@ export default function App() {
   const [networkStatusLoading, setNetworkStatusLoading] = useState(false);
   const [networkStatusError, setNetworkStatusError] = useState<string>();
   useEffect(() => {
-    // Always advertise on the network; use settings.hidden to go invisible
     void invoke("set_receive_mode_active", { active: !settings.settings.hidden });
   }, [settings.settings.hidden]);
 
@@ -59,6 +58,7 @@ export default function App() {
     devices.setDevices(devices.devices.map(update));
     if (devices.selectedDevice?.id === device.id) devices.selectDevice(update(devices.selectedDevice));
   };
+
   const setQuickSaveMode = useCallback((quickSaveMode: typeof settings.settings.quickSaveMode) => {
     void settings.save({
       ...settings.settings,
@@ -74,6 +74,14 @@ export default function App() {
   const handleRejectIncoming = useCallback(() => {
     void transfer.rejectIncoming();
   }, [transfer.rejectIncoming]);
+
+  const handleSend = useCallback((device: DeviceInfo) => {
+    devices.selectDevice(device);
+    void transfer.send(device);
+  }, [devices, transfer]);
+
+  const isTransferring = transfer.outgoing != null || transfer.receiving != null || transfer.progress.length > 0;
+
   const content = ui.view === "receive" ? (
     <ReceiveHome
       deviceName={settings.settings.deviceName}
@@ -84,11 +92,11 @@ export default function App() {
       onHistory={() => ui.setView("history")}
     />
   ) : ui.view === "history" ? (
-    <HistoryList />
+    <div className="h-full overflow-y-auto px-6 py-6"><HistoryList /></div>
   ) : ui.view === "settings" ? (
-    <SettingsPage />
+    <div className="h-full overflow-y-auto"><SettingsPage /></div>
   ) : ui.view === "clipboard" ? (
-    <ClipboardSend selectedDevice={devices.selectedDevice} />
+    <div className="h-full overflow-y-auto px-6 py-6"><ClipboardSend selectedDevice={devices.selectedDevice} /></div>
   ) : (
     <SendHome
       devices={devices.devices}
@@ -98,6 +106,7 @@ export default function App() {
       files={transfer.files}
       progress={transfer.progress}
       transferError={transfer.error}
+      transferring={isTransferring}
       onSelect={devices.selectDevice}
       onToggleFavorite={toggleFavorite}
       onRefresh={devices.refresh}
@@ -106,11 +115,12 @@ export default function App() {
       onPickFolder={() => transfer.pick("folder")}
       onClearFiles={transfer.clearFiles}
       onRemoveFile={transfer.removeFile}
-      onSend={() => devices.selectedDevice && transfer.send(devices.selectedDevice)}
+      onSend={handleSend}
       onCancel={(id) => transfer.cancel(id)}
       onClipboard={() => ui.setView("clipboard")}
     />
   );
+
   return (
     <>
       <MainLayout
@@ -127,20 +137,27 @@ export default function App() {
       >
         {content}
       </MainLayout>
+
       <ClipboardReceive />
+
       <ReceiveDialog
         sender={transfer.incoming?.sender}
         files={transfer.incoming?.files ?? []}
         onAccept={handleAcceptIncoming}
         onReject={handleRejectIncoming}
       />
-      <TransferActivityDialog
-        outgoing={transfer.outgoing}
-        receiving={transfer.receiving}
-        progress={transfer.progress}
-        onCancel={(id) => transfer.cancel(id)}
-        onDone={transfer.dismissReceiving}
-      />
+
+      {isTransferring && (
+        <ProgressPage
+          outgoing={transfer.outgoing}
+          receiving={transfer.receiving}
+          progress={transfer.progress}
+          transferComplete={transfer.transferComplete}
+          onCancel={(id) => transfer.cancel(id)}
+          onDone={transfer.dismissReceiving}
+        />
+      )}
+
       <StartupNetworkDialog
         open={networkDialogOpen}
         status={networkStatus}
@@ -149,7 +166,12 @@ export default function App() {
         onRefresh={refreshNetworkStatus}
         onClose={() => setNetworkDialogOpen(false)}
       />
-      {ui.toast && <div className="fixed bottom-5 right-5 rounded-md bg-bg-elevated px-4 py-3 shadow-panel">{ui.toast}</div>}
+
+      {ui.toast && (
+        <div className="fixed bottom-5 right-5 rounded-md bg-bg-elevated px-4 py-3 shadow-panel z-[200]">
+          {ui.toast}
+        </div>
+      )}
     </>
   );
 }

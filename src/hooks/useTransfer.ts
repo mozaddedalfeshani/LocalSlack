@@ -55,22 +55,12 @@ export function useTransfer() {
       );
     });
 
-    // Auto-clear sender progress bars 2 seconds after transfer completes
     const unlistenComplete = listen<string>("transfer-complete", () => {
-      window.setTimeout(() => {
-        useTransferStore.getState().clearProgress();
-        useTransferStore.getState().setOutgoing(undefined);
-        useTransferStore.getState().setReceiving(undefined);
-      }, 4000);
+      useTransferStore.getState().setTransferComplete(true);
     });
 
-    // Clear progress on transfer failure too
     const unlistenFailed = listen<string>("transfer-failed", () => {
-      window.setTimeout(() => {
-        useTransferStore.getState().clearProgress();
-        useTransferStore.getState().setOutgoing(undefined);
-        useTransferStore.getState().setReceiving(undefined);
-      }, 3000);
+      useTransferStore.getState().setTransferComplete(true);
     });
 
     void syncPendingIncoming();
@@ -98,13 +88,12 @@ export function useTransfer() {
       return;
     }
     try {
+      store.setTransferComplete(false);
       store.setOutgoing({ target, files: [...store.files] });
       await invoke("send_files", { target, filePaths: paths });
-      store.setSuccess("Transfer complete!");
     } catch (err) {
       store.setError(String(err));
-      store.clearProgress();
-      store.setOutgoing(undefined);
+      store.setTransferComplete(true);
     }
   };
 
@@ -136,6 +125,7 @@ export function useTransfer() {
     store.setReceiving(undefined);
     store.setOutgoing(undefined);
     store.clearProgress();
+    store.setTransferComplete(false);
   };
 
   return { ...store, send, cancel, pick, acceptIncoming, rejectIncoming, dismissReceiving, clearProgress: store.clearProgress };

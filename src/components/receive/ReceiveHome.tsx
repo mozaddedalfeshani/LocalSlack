@@ -1,4 +1,6 @@
-import { Clock3, Info, ShieldCheck, Zap } from "lucide-react";
+import { Clock3, ShieldCheck, Star, Zap } from "lucide-react";
+import { useEffect, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import logo from "../../assets/logo.png";
 
 type QuickSaveMode = "off" | "favorites" | "on";
@@ -12,103 +14,96 @@ interface Props {
   onHistory: () => void;
 }
 
-export function ReceiveHome({
-  deviceName,
-  emoji,
-  status,
-  quickSaveMode,
-  onQuickSaveMode,
-  onHistory
-}: Props) {
-  const quickSaveItems: Array<{ id: QuickSaveMode; label: string; icon: any }> = [
+export function ReceiveHome({ deviceName, emoji, status, quickSaveMode, onQuickSaveMode, onHistory }: Props) {
+  const [localIp, setLocalIp] = useState<string>("");
+  const [spinning, setSpinning] = useState(true);
+
+  useEffect(() => {
+    invoke<{ localIps: string[] }>("get_network_status")
+      .then((s) => { if (s.localIps[0]) setLocalIp(s.localIps[0]); })
+      .catch(() => undefined);
+  }, []);
+
+  const segments: Array<{ id: QuickSaveMode; label: string; icon: typeof ShieldCheck }> = [
     { id: "off", label: "Off", icon: ShieldCheck },
-    { id: "favorites", label: "Favorites", icon: Zap },
-    { id: "on", label: "On", icon: Zap }
+    { id: "favorites", label: "Favorites", icon: Star },
+    { id: "on", label: "On", icon: Zap },
   ];
 
   return (
-    <section className="flex flex-col gap-8 py-4 animate-in fade-in duration-700 h-full">
-      {/* Interactive Radar Reception Area */}
-      <div className="relative flex h-full min-h-[600px] w-full flex-col items-center justify-center overflow-hidden transition-all duration-500">
-        
-        {/* Top Control Bar */}
-        <div className="absolute top-8 z-20 flex gap-2 rounded-[22px] border border-border/40 bg-bg-surface/80 p-2 backdrop-blur-md shadow-lg">
-          <button 
-            className="flex h-12 w-12 items-center justify-center rounded-2xl transition hover:bg-bg-elevated hover:text-accent" 
-            onClick={onHistory}
-            title="Transfer History"
-          >
-            <Clock3 size={20} strokeWidth={2.5} />
-          </button>
-          <button 
-            className="flex h-12 w-12 items-center justify-center rounded-2xl transition hover:bg-bg-elevated hover:text-accent"
-            title="Device Information"
-          >
-            <Info size={20} strokeWidth={2.5} />
-          </button>
-        </div>
+    <div className="flex h-full flex-col items-center justify-between py-10 px-6">
+      {/* Center: logo + name + IP */}
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
+        <button
+          type="button"
+          onClick={() => setSpinning((v) => !v)}
+          className="relative focus:outline-none"
+          title="Toggle animation"
+        >
+          <img
+            src={logo}
+            alt="SwiftShare"
+            className={`h-28 w-28 rounded-full object-cover shadow-2xl transition-transform ${
+              spinning ? "animate-spin-slow" : ""
+            }`}
+            style={{ animationDuration: spinning ? "15s" : undefined }}
+          />
+          {emoji && (
+            <span className="absolute -bottom-2 -right-2 grid h-10 w-10 place-items-center rounded-full border-2 border-border bg-bg-surface text-xl shadow-md">
+              {emoji}
+            </span>
+          )}
+        </button>
 
-        {/* Radar Background Animations */}
-        <div className="absolute inset-0 z-0">
-          <div className="absolute left-1/2 top-1/2 h-[1px] w-[1px]">
-            <div className="radar-pulse absolute h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full border border-accent/20" />
-            <div className="radar-pulse absolute h-[450px] w-[450px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-accent/10" style={{ animationDelay: "1s" }} />
-            <div className="radar-scan absolute h-[800px] w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full" />
-          </div>
-        </div>
-
-        {/* Central Device Identity */}
-        <div className="relative z-10 flex flex-col items-center gap-6 text-center">
-          <div className="group relative h-40 w-40 transition-transform duration-500 hover:scale-105">
-            <div className="absolute inset-0 rounded-full bg-accent/20 blur-3xl" />
-            {/* The Rotating Orbit is now a subtle background element to the logo */}
-            <div className="receive-orbit absolute inset-0 opacity-40" />
-            <div className="relative grid h-full w-full place-items-center rounded-full border-2 border-accent/30 bg-bg-surface/50 backdrop-blur-sm shadow-2xl">
-              <img src={logo} alt="SwiftShare" className="h-32 w-32 rounded-full object-cover shadow-2xl" />
-            </div>
-            
-            {/* Pulsing Status Indicator */}
-            <div className="absolute -bottom-2 -right-2 grid h-12 w-12 place-items-center rounded-2xl border-2 border-accent/50 bg-bg-surface shadow-xl">
-              <span className="text-2xl">{emoji || "📡"}</span>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <h2 className="text-4xl font-bold tracking-tight text-text-primary">
-              {deviceName || "SwiftShare Device"}
-            </h2>
-            <div className="flex items-center justify-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-accent animate-pulse" />
-              <p className="text-lg font-medium text-text-muted">{status}</p>
-            </div>
-          </div>
-        </div>
-        {/* Modern Quick Save Control (Integrated) */}
-        <div className="absolute bottom-8 z-20 w-full max-w-sm px-4">
-          <div className="rounded-[30px] border border-border/40 bg-bg-surface/80 p-2 backdrop-blur-md shadow-xl">
-            <div className="grid grid-cols-3 gap-1">
-              {quickSaveItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => onQuickSaveMode(item.id)}
-                  className={`flex items-center justify-center gap-2 rounded-2xl py-2.5 transition-all duration-300 ${
-                    quickSaveMode === item.id
-                      ? "bg-accent text-[#241014] shadow-md"
-                      : "text-text-muted hover:bg-bg-elevated/50"
-                  }`}
-                >
-                  <item.icon size={14} strokeWidth={2.5} />
-                  <span className="text-[10px] font-black uppercase tracking-wider">{item.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+        <div>
+          <p className="text-[2.8rem] font-bold leading-tight text-text-primary">
+            {deviceName || "SwiftShare"}
+          </p>
+          {localIp && (
+            <p className="mt-1 text-2xl text-text-muted">#{localIp}</p>
+          )}
+          <p className="mt-2 text-sm font-medium text-text-muted">{status}</p>
         </div>
       </div>
 
-      <p className="text-xs font-medium text-text-muted">
-        Your device is visible to everyone on the local network.
-      </p>
-    </section>
+      {/* Bottom controls */}
+      <div className="w-full max-w-sm space-y-4">
+        {/* Quick Save segmented control */}
+        <div>
+          <p className="mb-2 text-center text-sm font-medium text-text-muted">Quick Save</p>
+          <div className="flex overflow-hidden rounded-full border border-border/60 bg-bg-surface">
+            {segments.map((seg) => {
+              const Icon = seg.icon;
+              const active = quickSaveMode === seg.id;
+              return (
+                <button
+                  key={seg.id}
+                  type="button"
+                  onClick={() => onQuickSaveMode(seg.id)}
+                  className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 text-sm font-medium transition-colors ${
+                    active
+                      ? "bg-accent text-[#241014]"
+                      : "text-text-muted hover:bg-bg-elevated hover:text-text-primary"
+                  }`}
+                >
+                  <Icon size={14} />
+                  {seg.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* History button */}
+        <button
+          type="button"
+          onClick={onHistory}
+          className="secondary-button w-full justify-center gap-2"
+        >
+          <Clock3 size={17} />
+          Transfer History
+        </button>
+      </div>
+    </div>
   );
 }

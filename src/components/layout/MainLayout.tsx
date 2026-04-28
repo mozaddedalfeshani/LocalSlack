@@ -20,7 +20,7 @@ export function MainLayout(props: Props) {
   return (
     <div className="flex h-screen overflow-hidden bg-bg-primary text-text-primary">
       <Sidebar {...props} />
-      <main className="min-w-0 flex-1 overflow-auto bg-bg-primary px-9 py-8">{props.children}</main>
+      <main className="min-w-0 flex-1 overflow-hidden bg-bg-primary">{props.children}</main>
     </div>
   );
 }

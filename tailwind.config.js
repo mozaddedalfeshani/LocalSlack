@@ -30,6 +30,9 @@ export default {
       },
       boxShadow: {
         panel: "0 18px 50px rgba(0, 0, 0, 0.28)"
+      },
+      animation: {
+        "spin-slow": "spin 15s linear infinite"
       }
     }
   },
