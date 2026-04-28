@@ -2,6 +2,9 @@ name: Build and Release
 
 on:
   push:
+    branches:
+      - main
+      - master
     tags:
       - "v*"
   workflow_dispatch:
@@ -36,6 +39,39 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Resolve release version
+        id: release_version
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            RELEASE_VERSION="${{ inputs.version }}"
+          elif [[ "${{ github.ref_type }}" == "tag" ]]; then
+            RELEASE_VERSION="${{ github.ref_name }}"
+          else
+            RELEASE_VERSION="v0.0.0-nightly.${{ github.run_number }}"
+          fi
+          echo "value=$RELEASE_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Show release context
+        shell: bash
+        run: |
+          echo "event_name=${{ github.event_name }}"
+          echo "ref=${{ github.ref }}"
+          echo "ref_name=${{ github.ref_name }}"
+          echo "input_version=${{ inputs.version }}"
+          echo "resolved_release_version=${{ steps.release_version.outputs.value }}"
+
+      - name: Validate release version format
+        shell: bash
+        run: |
+          RELEASE_VERSION="${{ steps.release_version.outputs.value }}"
+          if [[ ! "$RELEASE_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z]+)*$ ]]; then
+            echo "Invalid release version: $RELEASE_VERSION"
+            echo "Expected format: vMAJOR.MINOR.PATCH (example: v0.1.0)"
+            exit 1
+          fi
+          echo "Release version format is valid: $RELEASE_VERSION"
 
       - name: Install Linux dependencies
         if: matrix.platform == 'ubuntu-22.04'
@@ -75,10 +111,10 @@ jobs:
         with:
           projectPath: .
           args: ${{ matrix.args }}
-          tagName: ${{ inputs.version || github.ref_name }}
-          releaseName: "SwiftShare ${{ inputs.version || github.ref_name }}"
+          tagName: ${{ steps.release_version.outputs.value }}
+          releaseName: "SwiftShare ${{ steps.release_version.outputs.value }}"
           releaseBody: |
-            # SwiftShare ${{ inputs.version || github.ref_name }}
+            # SwiftShare ${{ steps.release_version.outputs.value }}
 
             SwiftShare is an open-source local Wi-Fi file sharing desktop app for Windows, macOS, and Linux.
 
@@ -96,4 +132,4 @@ jobs:
             - Devices must be on the same local network.
             - Repository: https://github.com/mozaddedalfeshani/swiftshare
           releaseDraft: false
-          prerelease: false
+          prerelease: ${{ github.ref_type != 'tag' }}
