@@ -22,6 +22,8 @@ import { ProgressPage } from "./components/transfer/ProgressPage";
 import type { ChannelEvent, ClipboardPayload, DeviceInfo, NetworkStatus } from "./types";
 import { decodeChannelText } from "./utils/channelPayload";
 
+const CHANNEL_SYNC_INTERVAL_MS = 3_000;
+
 export default function App() {
   const devices = useDevices();
   const transfer = useTransfer();
@@ -85,7 +87,7 @@ export default function App() {
       }
     };
     void sync();
-    const id = window.setInterval(() => void sync(), 15_000);
+    const id = window.setInterval(() => void sync(), CHANNEL_SYNC_INTERVAL_MS);
     return () => window.clearInterval(id);
   }, [devices.devices.length, setChannelEvents]);
 
