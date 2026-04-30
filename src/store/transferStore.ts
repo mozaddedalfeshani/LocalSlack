@@ -7,6 +7,7 @@ interface TransferStore {
   incoming?: IncomingTransferRequest;
   receiving?: ReceivingTransfer;
   outgoing?: OutgoingTransfer;
+  backgroundTransfer: boolean;
   transferComplete: boolean;
   error?: string;
   success?: string;
@@ -18,6 +19,7 @@ interface TransferStore {
   setIncoming: (incoming?: IncomingTransferRequest) => void;
   setReceiving: (receiving?: ReceivingTransfer) => void;
   setOutgoing: (outgoing?: OutgoingTransfer) => void;
+  setBackgroundTransfer: (backgroundTransfer: boolean) => void;
   setOutgoingSessionId: (sessionId: string) => void;
   setTransferComplete: (complete: boolean) => void;
   setError: (error?: string) => void;
@@ -27,6 +29,7 @@ interface TransferStore {
 export const useTransferStore = create<TransferStore>((set) => ({
   files: [],
   progress: [],
+  backgroundTransfer: false,
   transferComplete: false,
   addFiles: (files) => set((state) => ({ files: [...state.files, ...files] })),
   removeFile: (id) => set((state) => ({ files: state.files.filter((item) => item.id !== id) })),
@@ -34,14 +37,17 @@ export const useTransferStore = create<TransferStore>((set) => ({
   clearProgress: () => set({ progress: [] }),
   setProgress: (incoming) =>
     set((state) => ({
-      progress: [
-        ...state.progress.filter((item) => item.sessionId !== incoming.sessionId || item.fileId !== incoming.fileId),
-        incoming
-      ]
+      progress: state.backgroundTransfer
+        ? state.progress
+        : [
+            ...state.progress.filter((item) => item.sessionId !== incoming.sessionId || item.fileId !== incoming.fileId),
+            incoming
+          ]
     })),
   setIncoming: (incoming) => set({ incoming }),
   setReceiving: (receiving) => set({ receiving }),
   setOutgoing: (outgoing) => set({ outgoing }),
+  setBackgroundTransfer: (backgroundTransfer) => set({ backgroundTransfer }),
   setOutgoingSessionId: (sessionId) =>
     set((state) =>
       state.outgoing ? { outgoing: { ...state.outgoing, sessionId } } : state

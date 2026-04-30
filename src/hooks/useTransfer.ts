@@ -99,7 +99,7 @@ export function useTransfer() {
     }
   };
 
-  const sendToDevices = async (targets: DeviceInfo[], label: string, channelId?: ChannelId, assetIds?: string[]) => {
+  const sendToDevices = async (targets: DeviceInfo[], _label: string, channelId?: ChannelId, assetIds?: string[]) => {
     store.setError(undefined);
     store.clearProgress();
     const paths = store.files.map((item) => item.path).filter(Boolean) as string[];
@@ -112,20 +112,9 @@ export function useTransfer() {
       return;
     }
 
-    const channelTarget: DeviceInfo = {
-      id: `channel:${label.toLowerCase().replace(/\s+/g, "-")}`,
-      name: label,
-      emoji: "#",
-      ip: "channel",
-      port: 0,
-      deviceType: "desktop",
-      isFavorite: false,
-      lastSeen: Math.floor(Date.now() / 1000),
-    };
-
     try {
+      store.setBackgroundTransfer(true);
       store.setTransferComplete(false);
-      store.setOutgoing({ target: channelTarget, files: [...store.files] });
       const results = await Promise.allSettled(
         targets.map((target) => invoke("send_files", { target, filePaths: paths, channelId, assetIds }))
       );
@@ -138,7 +127,11 @@ export function useTransfer() {
       }
     } catch (err) {
       store.setError(String(err));
-      store.setTransferComplete(true);
+    } finally {
+      store.setBackgroundTransfer(false);
+      store.setOutgoing(undefined);
+      store.clearProgress();
+      store.setTransferComplete(false);
     }
   };
 
