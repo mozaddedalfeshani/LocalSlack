@@ -82,7 +82,7 @@ export function ReceiveHome({ deviceName, emoji, status, quickSaveMode, onQuickS
                   onClick={() => onQuickSaveMode(seg.id)}
                   className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 text-sm font-medium transition-colors ${
                     active
-                      ? "bg-accent text-[#241014]"
+                      ? "bg-accent text-white"
                       : "text-text-muted hover:bg-bg-elevated hover:text-text-primary"
                   }`}
                 >
