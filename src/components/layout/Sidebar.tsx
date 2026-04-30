@@ -1,4 +1,5 @@
-import { Check, Clock3, Pencil, Plus, Send, Settings, Wifi, X } from "lucide-react";
+import { invoke } from "@tauri-apps/api/core";
+import { Check, Clock3, Github, Pencil, Plus, Send, Settings, Wifi, X } from "lucide-react";
 import { useRef, useState } from "react";
 import type { ShareChannel } from "../../data/channels";
 import type { ChannelId, DeviceInfo } from "../../types";
@@ -51,6 +52,10 @@ export function Sidebar(props: Props) {
   };
 
   const cancel = () => setPrompt(null);
+
+  const openGithubRepository = () => {
+    void invoke("open_github_repository");
+  };
 
   const items = [
     { id: "receive" as const, label: "Receive", icon: Wifi },
@@ -154,6 +159,20 @@ export function Sidebar(props: Props) {
           );
         })}
       </nav>
+
+      <div className="mt-auto pt-6">
+        <button
+          type="button"
+          className="rail-button"
+          onClick={openGithubRepository}
+          title="Open GitHub repository"
+        >
+          <span className="rail-icon">
+            <Github size={23} strokeWidth={2.2} />
+          </span>
+          <span>Contribute to app</span>
+        </button>
+      </div>
     </aside>
   );
 }

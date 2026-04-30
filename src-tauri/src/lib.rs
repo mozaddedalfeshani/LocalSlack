@@ -470,6 +470,12 @@ async fn open_folder(path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+async fn open_github_repository() -> Result<(), String> {
+    open::that("https://github.com/mozaddedalfeshani/swiftshare")
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
 async fn get_local_ip() -> Result<Vec<String>, String> {
     Ok(discovery::local_ips())
 }
@@ -728,6 +734,7 @@ pub fn run() {
             save_settings,
             open_file,
             open_folder,
+            open_github_repository,
             get_local_ip,
             get_network_status,
             get_path_entries,
