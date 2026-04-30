@@ -151,7 +151,7 @@ export default function App() {
     emoji: settings.settings.deviceEmoji,
     ip: "local",
     port: settings.settings.port,
-    deviceType: "Desktop",
+    deviceType: "desktop",
     isFavorite: false,
     lastSeen: Math.floor(Date.now() / 1000),
   };

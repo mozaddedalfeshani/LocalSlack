@@ -12,7 +12,7 @@ use std::{
         atomic::{AtomicBool, Ordering},
         Arc,
     },
-    time::Instant,
+    time::{Duration, Instant},
 };
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::{fs::File, io::AsyncReadExt};
@@ -84,7 +84,11 @@ pub async fn send_files(
             }
         }
     }
-    let prepare = Client::new()
+    let client = Client::builder()
+        .timeout(Duration::from_secs(30))
+        .build()
+        .unwrap_or_default();
+    let prepare = client
         .post(format!(
             "http://{}:{}/api/v1/prepare-upload",
             target.ip, target.port
@@ -207,7 +211,10 @@ async fn stream_one_file(
         }
     };
     let request_stream = stream.map(|r: Result<Vec<u8>, std::io::Error>| r.map(bytes::Bytes::from));
-    Client::new()
+    Client::builder()
+        .timeout(Duration::from_secs(30))
+        .build()
+        .unwrap_or_default()
         .post(format!(
             "http://{}:{}/api/v1/upload/{}/{}",
             target.ip, target.port, session_id, file_meta.id

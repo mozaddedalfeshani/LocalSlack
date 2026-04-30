@@ -1,4 +1,4 @@
-export type DeviceType = "desktop" | "mobile" | "web" | "Desktop" | "Mobile" | "Web";
+export type DeviceType = "desktop" | "mobile" | "web";
 
 export interface DeviceInfo {
   id: string;
@@ -33,7 +33,7 @@ export interface FileMetadata {
 
 export type ChannelId = "general" | "media" | "announcements";
 
-export type ChannelEventKind = "text" | "asset" | "Text" | "Asset";
+export type ChannelEventKind = "text" | "asset";
 
 export interface ChannelEvent {
   id: string;
@@ -55,7 +55,7 @@ export interface ChannelEvent {
 }
 
 export type TransferStatus = "pending" | "accepted" | "rejected" | "inProgress" | "completed" | "failed" | "cancelled";
-export type TransferDirection = "sent" | "received" | "Sent" | "Received";
+export type TransferDirection = "sent" | "received";
 
 export interface TransferProgress {
   sessionId: string;

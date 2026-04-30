@@ -147,7 +147,18 @@ async fn channel_asset(
 async fn prepare_upload(
     State(state): State<ServerState>,
     Json(request): Json<PrepareUploadRequest>,
-) -> impl IntoResponse {
+) -> axum::response::Response {
+    let sender = request.sender.clone();
+    // Enforce IP allow/block lists from settings
+    let filter_settings = state.settings.get().await;
+    if !filter_settings.allowed_ips.is_empty()
+        && !filter_settings.allowed_ips.contains(&sender.ip)
+    {
+        return StatusCode::FORBIDDEN.into_response();
+    }
+    if filter_settings.blocked_ips.contains(&sender.ip) {
+        return StatusCode::FORBIDDEN.into_response();
+    }
     let session_id = Uuid::new_v4().to_string();
     let sender = request.sender;
     let files = request.files;
@@ -206,6 +217,7 @@ async fn prepare_upload(
         token: Uuid::new_v4().to_string(),
         accepted,
     })
+    .into_response()
 }
 
 fn present_receive_window(app: &AppHandle, reason: &str) {
@@ -336,6 +348,7 @@ async fn save_upload(
     output.flush().await.context("failed to flush upload")?;
     let computed = format!("{:x}", hasher.finalize());
     if !file_meta.sha256.is_empty() && computed != file_meta.sha256 {
+        let _ = fs::remove_file(&output_path).await;
         state.app.emit("transfer-failed", session_id)?;
         anyhow::bail!("sha256 verification failed");
     }

@@ -109,7 +109,7 @@ impl DiscoveryState {
         let local_ip_set: HashSet<Ipv4Addr> = local_ips.iter().copied().collect();
         let port = settings_value.port;
         let client = match reqwest::Client::builder()
-            .timeout(Duration::from_millis(650))
+            .timeout(Duration::from_millis(200))
             .build()
         {
             Ok(client) => client,
@@ -117,7 +117,7 @@ impl DiscoveryState {
         };
 
         let mut probes = FuturesUnordered::new();
-        for ip in local_ips.into_iter().take(3) {
+        for ip in local_ips.into_iter().take(2) {
             let octets = ip.octets();
             for host in 1..=254_u8 {
                 let candidate = Ipv4Addr::new(octets[0], octets[1], octets[2], host);

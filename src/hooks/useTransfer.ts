@@ -118,7 +118,7 @@ export function useTransfer() {
       emoji: "#",
       ip: "channel",
       port: 0,
-      deviceType: "Desktop",
+      deviceType: "desktop",
       isFavorite: false,
       lastSeen: Math.floor(Date.now() / 1000),
     };

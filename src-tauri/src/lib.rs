@@ -1,6 +1,5 @@
 pub mod clipboard;
 pub mod channels;
-pub mod crypto;
 pub mod discovery;
 pub mod favorites;
 pub mod history;
