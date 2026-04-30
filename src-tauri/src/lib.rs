@@ -15,7 +15,7 @@ use favorites::FavoritesStore;
 use history::HistoryStore;
 use models::{
     AppSettings, ChannelEvent, ChannelEventKind, ChannelEventsResponse, DeviceInfo, HistoryEntry,
-    IncomingTransferRequest, NetworkStatus, PathEntry,
+    IncomingTransferRequest, NetworkStatus, PathEntry, SlackInfo,
 };
 use sender::TransferCanceller;
 use settings::SettingsStore;
@@ -160,6 +160,36 @@ async fn get_channel_events(state: State<'_, AppState>) -> Result<Vec<ChannelEve
 }
 
 #[tauri::command]
+async fn get_slack_info(state: State<'_, AppState>) -> Result<SlackInfo, String> {
+    state
+        .channels
+        .slack_info()
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+async fn create_channel(state: State<'_, AppState>, name: String) -> Result<SlackInfo, String> {
+    let author = state.discovery.local_device(&state.settings).await;
+    state
+        .channels
+        .create_channel(name, &author)
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+async fn rename_channel(
+    state: State<'_, AppState>,
+    channel_id: String,
+    name: String,
+) -> Result<SlackInfo, String> {
+    let author = state.discovery.local_device(&state.settings).await;
+    state
+        .channels
+        .rename_channel(&channel_id, name, &author)
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
 async fn save_channel_text_event(
     state: State<'_, AppState>,
     channel_id: String,
@@ -255,19 +285,16 @@ async fn edit_channel_text_event(
 }
 
 #[tauri::command]
-async fn sync_channels(state: State<'_, AppState>) -> Result<Vec<ChannelEvent>, String> {
+async fn sync_channels(state: State<'_, AppState>) -> Result<ChannelEventsResponse, String> {
     let devices = state.discovery.devices(&state.favorites).await;
     let client = reqwest::Client::new();
-    let local_events = state
-        .channels
-        .events()
-        .map_err(|error| error.to_string())?;
     for device in devices {
         let url = format!("http://{}:{}/api/v1/channel/events", device.ip, device.port);
         if let Ok(response) = client.get(&url).send().await {
             if let Ok(response) = response.error_for_status() {
                 if let Ok(remote) = response.json::<ChannelEventsResponse>().await {
                     let _ = state.channels.save_remote_events(remote.events);
+                    let _ = state.channels.save_remote_slack_info(remote.slack_info);
                 }
             }
         }
@@ -275,19 +302,26 @@ async fn sync_channels(state: State<'_, AppState>) -> Result<Vec<ChannelEvent>, 
             .channels
             .events()
             .map_err(|error| error.to_string())?;
+        let current_slack_info = state
+            .channels
+            .slack_info()
+            .map_err(|error| error.to_string())?;
         let _ = client
             .post(&url)
             .json(&ChannelEventsResponse {
                 events: current_events,
+                slack_info: current_slack_info,
             })
             .send()
             .await;
     }
-    state
-        .channels
-        .save_events(local_events)
-        .map_err(|error| error.to_string())?;
-    state.channels.events().map_err(|error| error.to_string())
+    Ok(ChannelEventsResponse {
+        events: state.channels.events().map_err(|error| error.to_string())?,
+        slack_info: state
+            .channels
+            .slack_info()
+            .map_err(|error| error.to_string())?,
+    })
 }
 
 #[tauri::command]
@@ -675,6 +709,9 @@ pub fn run() {
             read_clipboard,
             write_clipboard,
             get_channel_events,
+            get_slack_info,
+            create_channel,
+            rename_channel,
             save_channel_text_event,
             save_channel_asset_event,
             delete_channel_event,

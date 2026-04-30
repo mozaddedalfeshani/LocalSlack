@@ -19,7 +19,7 @@ import { SendHome } from "./components/send/SendHome";
 import { SettingsPage } from "./components/settings/SettingsPage";
 import { ReceiveDialog } from "./components/transfer/ReceiveDialog";
 import { ProgressPage } from "./components/transfer/ProgressPage";
-import type { ChannelEvent, ClipboardPayload, DeviceInfo, NetworkStatus } from "./types";
+import type { ChannelEvent, ChannelEventsResponse, ClipboardPayload, DeviceInfo, NetworkStatus, SlackInfo } from "./types";
 import { decodeChannelText } from "./utils/channelPayload";
 
 const CHANNEL_SYNC_INTERVAL_MS = 3_000;
@@ -35,6 +35,8 @@ export default function App() {
   const [localDevice, setLocalDevice] = useState<DeviceInfo>();
   const [networkStatusLoading, setNetworkStatusLoading] = useState(false);
   const [networkStatusError, setNetworkStatusError] = useState<string>();
+  const channels = useChannelStore((state) => state.channels);
+  const setSlackInfo = useChannelStore((state) => state.setSlackInfo);
   const setChannelEvents = useChannelStore((state) => state.setEvents);
   const upsertChannelEvent = useChannelStore((state) => state.upsertEvent);
 
@@ -69,10 +71,11 @@ export default function App() {
   const refreshChannelEvents = useCallback(async () => {
     try {
       setChannelEvents(await invoke<ChannelEvent[]>("get_channel_events"));
+      setSlackInfo(await invoke<SlackInfo>("get_slack_info"));
     } catch {
       // Channel sync is opportunistic; the UI can continue with local state.
     }
-  }, [setChannelEvents]);
+  }, [setChannelEvents, setSlackInfo]);
 
   useEffect(() => {
     void refreshChannelEvents();
@@ -81,7 +84,9 @@ export default function App() {
   useEffect(() => {
     const sync = async () => {
       try {
-        setChannelEvents(await invoke<ChannelEvent[]>("sync_channels"));
+        const response = await invoke<ChannelEventsResponse>("sync_channels");
+        setChannelEvents(response.events);
+        setSlackInfo(response.slackInfo);
       } catch {
         // Offline-only use is allowed.
       }
@@ -89,7 +94,7 @@ export default function App() {
     void sync();
     const id = window.setInterval(() => void sync(), CHANNEL_SYNC_INTERVAL_MS);
     return () => window.clearInterval(id);
-  }, [devices.devices.length, setChannelEvents]);
+  }, [devices.devices.length, setChannelEvents, setSlackInfo]);
 
   useEffect(() => {
     const unlisten = listen<ClipboardPayload>("clipboard-received", (event) => {
@@ -146,7 +151,32 @@ export default function App() {
     void transfer.send(device);
   }, [devices, transfer]);
 
-  const activeChannel = getChannel(ui.activeChannelId);
+  const syncChannelState = useCallback(async () => {
+    const response = await invoke<ChannelEventsResponse>("sync_channels");
+    setChannelEvents(response.events);
+    setSlackInfo(response.slackInfo);
+    return response;
+  }, [setChannelEvents, setSlackInfo]);
+
+  const createChannel = useCallback((name: string) => {
+    void invoke<SlackInfo>("create_channel", { name })
+      .then((info) => {
+        setSlackInfo(info);
+        const latest = [...info.channels].sort((a, b) => b.updatedAt - a.updatedAt)[0];
+        if (latest) ui.setChannel(latest.id);
+      })
+      .then(syncChannelState)
+      .catch((error) => useUiStore.getState().showToast(String(error)));
+  }, [setSlackInfo, syncChannelState, ui]);
+
+  const renameChannel = useCallback((channelId: string, name: string) => {
+    void invoke<SlackInfo>("rename_channel", { channelId, name })
+      .then(setSlackInfo)
+      .then(syncChannelState)
+      .catch((error) => useUiStore.getState().showToast(String(error)));
+  }, [setSlackInfo, syncChannelState]);
+
+  const activeChannel = getChannel(ui.activeChannelId, channels);
   const currentLocalDevice: DeviceInfo = localDevice ?? {
     id: settings.settings.deviceId || "local-device",
     name: settings.settings.deviceName || "You",
@@ -179,9 +209,9 @@ export default function App() {
         ui.activeChannelId,
         events.map((event) => event.assetId ?? event.id)
       );
-      window.setTimeout(() => void invoke<ChannelEvent[]>("sync_channels").then(setChannelEvents).catch(() => undefined), 1000);
+      window.setTimeout(() => void syncChannelState().catch(() => undefined), 1000);
     })().catch(() => undefined);
-  }, [activeChannel.name, devices.devices, setChannelEvents, transfer, ui.activeChannelId, upsertChannelEvent]);
+  }, [activeChannel.name, devices.devices, syncChannelState, transfer, ui.activeChannelId, upsertChannelEvent]);
 
   const sendChannelMessage = useCallback((text: string) => {
     void invoke<ChannelEvent>("save_channel_text_event", {
@@ -190,33 +220,30 @@ export default function App() {
     })
       .then((event) => {
         upsertChannelEvent(event);
-        return invoke<ChannelEvent[]>("sync_channels");
+        return syncChannelState();
       })
-      .then(setChannelEvents)
       .catch(() => transfer.sendTextToDevices(devices.devices, ui.activeChannelId, text, currentLocalDevice));
-  }, [currentLocalDevice, devices.devices, setChannelEvents, transfer, ui.activeChannelId, upsertChannelEvent]);
+  }, [currentLocalDevice, devices.devices, syncChannelState, transfer, ui.activeChannelId, upsertChannelEvent]);
 
   const deleteChannelEvent = useCallback((id: string) => {
     void invoke<ChannelEvent | null>("delete_channel_event", { id })
       .then((event) => {
         if (event) upsertChannelEvent(event);
-        return invoke<ChannelEvent[]>("sync_channels");
+        return syncChannelState();
       })
-      .then(setChannelEvents)
       .catch(() => undefined);
-  }, [setChannelEvents, upsertChannelEvent]);
+  }, [syncChannelState, upsertChannelEvent]);
 
   const editChannelMessage = useCallback((id: string, text: string) => {
     void invoke<ChannelEvent | null>("edit_channel_text_event", { id, text })
       .then((event) => {
         if (event) upsertChannelEvent(event);
-        return invoke<ChannelEvent[]>("sync_channels");
+        return syncChannelState();
       })
-      .then(setChannelEvents)
       .catch((error) => {
         useUiStore.getState().showToast(String(error));
       });
-  }, [setChannelEvents, upsertChannelEvent]);
+  }, [syncChannelState, upsertChannelEvent]);
 
   const downloadChannelAsset = useCallback((id: string) => {
     void invoke<ChannelEvent>("download_channel_asset", { eventId: id })
@@ -301,6 +328,7 @@ export default function App() {
       <MainLayout
         deviceName={settings.settings.deviceName}
         devices={devices.devices}
+        channels={channels}
         selected={devices.selectedDevice}
         loading={devices.loading}
         error={devices.error}
@@ -308,6 +336,8 @@ export default function App() {
         activeChannelId={ui.activeChannelId}
         onView={ui.setView}
         onChannel={ui.setChannel}
+        onCreateChannel={createChannel}
+        onRenameChannel={renameChannel}
         onSelect={devices.selectDevice}
         onToggleFavorite={toggleFavorite}
         onSettings={() => ui.setView("settings")}

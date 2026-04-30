@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Sidebar } from "./Sidebar";
-import type { ChannelId } from "../../data/channels";
-import type { DeviceInfo } from "../../types";
+import type { ShareChannel } from "../../data/channels";
+import type { ChannelId, DeviceInfo } from "../../types";
 
 interface Props {
   children: ReactNode;
@@ -11,9 +11,12 @@ interface Props {
   loading?: boolean;
   error?: string;
   view: "channel" | "receive" | "send" | "clipboard" | "history" | "settings";
+  channels: ShareChannel[];
   activeChannelId: ChannelId;
   onView: (view: "channel" | "receive" | "send" | "clipboard" | "history" | "settings") => void;
   onChannel: (channelId: ChannelId) => void;
+  onCreateChannel: (name: string) => void;
+  onRenameChannel: (channelId: string, name: string) => void;
   onSelect: (device: DeviceInfo) => void;
   onToggleFavorite: (device: DeviceInfo) => void;
   onSettings: () => void;

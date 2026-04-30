@@ -156,6 +156,40 @@ pub struct ChannelEvent {
     pub deleted_at: Option<u64>,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ChannelNameChange {
+    pub previous_name: String,
+    pub new_name: String,
+    pub changed_by_id: String,
+    pub changed_by_name: String,
+    pub changed_at: u64,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SlackChannel {
+    pub id: String,
+    pub name: String,
+    pub title: String,
+    pub description: String,
+    pub created_by_id: String,
+    pub created_by_name: String,
+    pub created_at: u64,
+    pub updated_at: u64,
+    #[serde(default)]
+    pub message_count: u64,
+    #[serde(default)]
+    pub last_name_changes: Vec<ChannelNameChange>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct SlackInfo {
+    pub channels: Vec<SlackChannel>,
+    pub updated_at: u64,
+}
+
 fn default_available_count() -> u32 {
     1
 }
@@ -164,6 +198,8 @@ fn default_available_count() -> u32 {
 #[serde(rename_all = "camelCase")]
 pub struct ChannelEventsResponse {
     pub events: Vec<ChannelEvent>,
+    #[serde(default)]
+    pub slack_info: SlackInfo,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]

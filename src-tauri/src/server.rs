@@ -109,6 +109,7 @@ async fn info(State(state): State<ServerState>) -> Json<DeviceInfo> {
 async fn channel_events(State(state): State<ServerState>) -> Json<ChannelEventsResponse> {
     Json(ChannelEventsResponse {
         events: state.channels.events().unwrap_or_default(),
+        slack_info: state.channels.slack_info().unwrap_or_default(),
     })
 }
 
@@ -116,10 +117,13 @@ async fn save_channel_events(
     State(state): State<ServerState>,
     Json(payload): Json<ChannelEventsResponse>,
 ) -> impl IntoResponse {
-    match state.channels.save_remote_events(payload.events) {
-        Ok(()) => StatusCode::ACCEPTED.into_response(),
-        Err(error) => (StatusCode::BAD_REQUEST, error.to_string()).into_response(),
+    if let Err(error) = state.channels.save_remote_events(payload.events) {
+        return (StatusCode::BAD_REQUEST, error.to_string()).into_response();
     }
+    if let Err(error) = state.channels.save_remote_slack_info(payload.slack_info) {
+        return (StatusCode::BAD_REQUEST, error.to_string()).into_response();
+    }
+    StatusCode::ACCEPTED.into_response()
 }
 
 async fn channel_asset(

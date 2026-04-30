@@ -1,5 +1,4 @@
-import type { ChannelId } from "../data/channels";
-import type { DeviceInfo } from "../types";
+import type { ChannelId, DeviceInfo } from "../types";
 
 const PREFIX = "SWIFTSHARE_CHANNEL_MESSAGE:";
 

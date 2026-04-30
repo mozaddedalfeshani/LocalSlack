@@ -31,7 +31,7 @@ export interface FileMetadata {
   sha256: string;
 }
 
-export type ChannelId = "general" | "media" | "announcements";
+export type ChannelId = string;
 
 export type ChannelEventKind = "text" | "asset";
 
@@ -52,6 +52,37 @@ export interface ChannelEvent {
   createdAt: number;
   updatedAt: number;
   deletedAt?: number;
+}
+
+export interface ChannelNameChange {
+  previousName: string;
+  newName: string;
+  changedById: string;
+  changedByName: string;
+  changedAt: number;
+}
+
+export interface SlackChannel {
+  id: string;
+  name: string;
+  title: string;
+  description: string;
+  createdById: string;
+  createdByName: string;
+  createdAt: number;
+  updatedAt: number;
+  messageCount: number;
+  lastNameChanges: ChannelNameChange[];
+}
+
+export interface SlackInfo {
+  channels: SlackChannel[];
+  updatedAt: number;
+}
+
+export interface ChannelEventsResponse {
+  events: ChannelEvent[];
+  slackInfo: SlackInfo;
 }
 
 export type TransferStatus = "pending" | "accepted" | "rejected" | "inProgress" | "completed" | "failed" | "cancelled";

@@ -49,8 +49,8 @@ export function ChannelShare(props: Props) {
   };
 
   return (
-    <div className="grid h-full grid-cols-[minmax(0,1fr)_280px] overflow-hidden">
-      <section className="flex min-w-0 flex-col border-r border-border/60">
+    <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_280px] overflow-hidden">
+      <section className="grid h-full min-h-0 min-w-0 grid-rows-[5rem_minmax(0,1fr)_auto] overflow-hidden border-r border-border/60">
         <header className="flex h-20 shrink-0 items-center justify-between border-b border-border/60 px-6">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
@@ -61,7 +61,7 @@ export function ChannelShare(props: Props) {
           </div>
           <div className="flex items-center gap-2 rounded-md border border-border/70 bg-bg-surface px-3 py-2 text-sm text-text-secondary">
             <Users size={16} />
-            {props.devices.length} online
+            {props.devices.length} online · {props.channel.messageCount} item{props.channel.messageCount === 1 ? "" : "s"}
           </div>
         </header>
 
@@ -95,7 +95,7 @@ export function ChannelShare(props: Props) {
           )}
         </div>
 
-        <footer className="shrink-0 border-t border-border/60 bg-bg-primary p-4">
+        <footer className="z-10 border-t border-border/60 bg-bg-primary p-4">
           {props.files.length > 0 && (
             <div className="mb-3 rounded-md border border-border/70 bg-bg-surface p-3">
               <div className="mb-2 flex items-center justify-between gap-3">
@@ -185,6 +185,24 @@ export function ChannelShare(props: Props) {
             <MemberRow key={device.id} device={device} label="Online" />
           ))}
         </div>
+
+        {props.channel.lastNameChanges.length > 0 && (
+          <div className="mt-5 border-t border-border/60 pt-4">
+            <h3 className="font-semibold text-text-primary">Recent name changes</h3>
+            <div className="mt-3 space-y-2">
+              {props.channel.lastNameChanges.slice(0, 5).map((change) => (
+                <div key={`${change.changedAt}:${change.previousName}:${change.newName}`} className="rounded-md border border-border/50 bg-bg-surface p-3 text-xs text-text-secondary">
+                  <p className="truncate">
+                    #{change.previousName} -&gt; #{change.newName}
+                  </p>
+                  <p className="mt-1 truncate text-text-muted">
+                    {change.changedByName} · {formatTime(change.changedAt)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </aside>
     </div>
   );

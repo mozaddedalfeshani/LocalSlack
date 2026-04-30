@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { ChannelId } from "../data/channels";
+import type { ChannelId } from "../types";
 
 type MainView = "channel" | "receive" | "send" | "clipboard" | "history" | "settings";
 
