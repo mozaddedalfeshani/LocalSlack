@@ -65,10 +65,10 @@ export function Sidebar(props: Props) {
   ];
 
   return (
-    <aside className="flex w-[270px] shrink-0 flex-col bg-bg-secondary px-3 py-8 text-text-primary">
+    <aside className="flex w-[270px] shrink-0 flex-col border-r border-border/60 bg-bg-secondary/80 px-3 py-8 text-text-primary shadow-cute backdrop-blur-xl">
       <div className="mb-8 flex items-center gap-3 px-5">
-        <img src={logo} alt="LocalSlack Logo" className="h-10 w-10 rounded-full object-cover shadow-sm" />
-        <h1 className="text-2xl font-bold tracking-tight">LocalSlack</h1>
+        <img src={logo} alt="LocalSlack Logo" className="h-10 w-10 rounded-lg object-cover shadow-sm" />
+        <h1 className="font-display text-2xl font-bold tracking-normal">LocalSlack</h1>
       </div>
 
       <div className="mb-8">
@@ -76,7 +76,7 @@ export function Sidebar(props: Props) {
           <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">Channels</p>
           <button
             type="button"
-            className="grid h-7 w-7 place-items-center rounded-md text-text-muted transition hover:bg-bg-surface hover:text-accent"
+            className="grid h-7 w-7 place-items-center rounded-lg text-text-muted transition hover:bg-bg-surface hover:text-accent"
             onClick={openCreate}
             title="Add channel"
           >
@@ -116,7 +116,7 @@ export function Sidebar(props: Props) {
                   </button>
                   <button
                     type="button"
-                    className="grid h-6 w-6 shrink-0 place-items-center rounded text-text-muted transition hover:bg-bg-elevated hover:text-accent"
+                    className="grid h-6 w-6 shrink-0 place-items-center rounded-lg text-text-muted transition hover:bg-bg-elevated hover:text-accent"
                     onClick={(e) => { e.stopPropagation(); openRename(channel.id, channel.name); }}
                     title="Rename channel"
                   >
@@ -187,7 +187,7 @@ const ChannelNameInput = forwardRef<HTMLInputElement, {
   onCancel: () => void;
 }>(function ChannelNameInput({ value, placeholder, onChange, onCommit, onCancel }, ref) {
   return (
-    <div className="mx-1 mb-1 rounded-md border border-accent/40 bg-bg-surface p-2">
+    <div className="mx-1 mb-1 rounded-lg border border-accent/40 bg-bg-surface p-2 shadow-sm">
       <input
         ref={ref}
         type="text"
