@@ -1,5 +1,5 @@
 import { Check, Download, ExternalLink, File, FolderOpen, Hash, Paperclip, Pencil, RefreshCw, Send, Smile, Users, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ShareChannel } from "../../data/channels";
 import { useChannelStore } from "../../store/channelStore";
 import type { ChannelEvent, DeviceInfo, SelectedFile, TransferProgress as Progress } from "../../types";
@@ -32,14 +32,20 @@ interface Props {
 
 export function ChannelShare(props: Props) {
   const [message, setMessage] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const channelEvents = useChannelStore((state) => state.events);
   const events = useMemo(
     () => channelEvents.filter((item) => item.channelId === props.channel.id && !item.deletedAt),
     [channelEvents, props.channel.id]
   );
+  const latestEventId = events.length > 0 ? events[events.length - 1].id : undefined;
   const totalSize = props.files.reduce((sum, item) => sum + item.file.size, 0);
   const canSendMessage = message.trim().length > 0 && props.devices.length > 0;
   const canSendFiles = props.files.length > 0 && props.devices.length > 0;
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+  }, [latestEventId, props.channel.id]);
 
   const submitMessage = () => {
     const text = message.trim();
@@ -91,6 +97,7 @@ export function ChannelShare(props: Props) {
                   onOpen={() => item.filePath && props.onOpenAsset(item.filePath)}
                 />
               ))}
+              <div ref={messagesEndRef} />
             </div>
           )}
         </div>
