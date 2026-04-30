@@ -32,17 +32,17 @@
 }
 
 :root[data-theme="dark"] {
-  --bg-primary: 10 23 48;
-  --bg-secondary: 16 33 62;
-  --bg-surface: 22 42 74;
-  --bg-elevated: 31 55 88;
-  --border: 61 82 112;
-  --text-primary: 247 250 255;
-  --text-secondary: 208 219 235;
-  --text-muted: 149 166 190;
-  --accent: 137 217 207;
-  --accent-hover: 104 197 185;
-  color-scheme: dark;
+  --bg-primary: 250 249 243;
+  --bg-secondary: 236 251 247;
+  --bg-surface: 255 255 252;
+  --bg-elevated: 242 249 247;
+  --border: 207 224 222;
+  --text-primary: 9 23 48;
+  --text-secondary: 77 94 119;
+  --text-muted: 112 130 153;
+  --accent: 61 91 197;
+  --accent-hover: 47 75 178;
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; }
