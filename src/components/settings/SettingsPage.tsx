@@ -64,7 +64,7 @@ export function SettingsPage() {
         <button
           onClick={() => save(settings)}
           title="Save All Changes"
-          className="group flex h-16 w-16 items-center justify-center rounded-[24px] bg-accent text-[#241014] shadow-2xl shadow-accent/40 transition-all hover:scale-110 active:scale-95 hover:shadow-accent/60 overflow-hidden"
+          className="group flex h-16 w-16 items-center justify-center rounded-[24px] bg-accent text-white shadow-2xl shadow-accent/40 transition-all hover:scale-110 active:scale-95 hover:shadow-accent/60 overflow-hidden"
         >
           <div className="relative flex items-center justify-center">
             <Save size={28} strokeWidth={2.5} className="transition-transform group-hover:scale-110" />
