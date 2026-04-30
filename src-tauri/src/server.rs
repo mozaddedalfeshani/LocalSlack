@@ -167,6 +167,7 @@ async fn prepare_upload(
     let sender = request.sender;
     let files = request.files;
     let channel_id = request.channel_id;
+    let is_channel_upload = channel_id.is_some();
     state
         .sessions
         .write()
@@ -186,7 +187,7 @@ async fn prepare_upload(
             .insert(session_id.clone(), channel_id);
     }
     let settings = state.settings.get().await;
-    let mut accepted = settings.quick_save || settings.quick_save_mode == "on";
+    let mut accepted = is_channel_upload || settings.quick_save || settings.quick_save_mode == "on";
     // Favorites mode: auto-accept only if sender is in favorites
     if !accepted && settings.quick_save_mode == "favorites" {
         accepted = state.favorites.is_favorite(&sender.id).unwrap_or(false);
@@ -212,7 +213,7 @@ async fn prepare_upload(
         state.sessions.write().await.remove(&session_id);
         state.sessions_senders.write().await.remove(&session_id);
         state.sessions_channels.write().await.remove(&session_id);
-    } else {
+    } else if !is_channel_upload {
         present_receive_window(&state.app, "receiving-started");
         emit_receive_event(&state.app, "receiving-started", incoming);
     }
@@ -403,7 +404,8 @@ async fn save_upload(
             updated_at: now,
             deleted_at: None,
         };
-        state.channels.save_event(event)?;
+        state.channels.save_event(event.clone())?;
+        state.app.emit("channel-event-updated", event)?;
     }
     let session_complete = {
         let mut completed_sessions = state.sessions_completed.write().await;

@@ -120,6 +120,15 @@ export default function App() {
     };
   }, [upsertChannelEvent, ui]);
 
+  useEffect(() => {
+    const unlisten = listen<ChannelEvent>("channel-event-updated", (event) => {
+      upsertChannelEvent(event.payload);
+    });
+    return () => {
+      unlisten.then((fn) => fn()).catch(() => undefined);
+    };
+  }, [upsertChannelEvent]);
+
   const toggleFavorite = async (device: typeof devices.devices[number]) => {
     const isFavorite = !device.isFavorite;
     if (isFavorite) await favorites.add(device);

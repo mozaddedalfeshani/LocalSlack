@@ -49,6 +49,7 @@ export function useTransfer() {
     const unlistenReceiving = listen<ReceivingTransfer>("receiving-started", (event) => {
       store.setIncoming(undefined);
       store.setReceiving(event.payload);
+      if (event.payload.channelId) return;
       useUiStore.getState().setView("receive");
       void showIncomingAttention(
         `Receiving from ${event.payload.sender.name}`,
