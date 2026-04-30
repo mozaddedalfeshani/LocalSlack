@@ -1,5 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import "@fontsource-variable/fredoka";
+import "@fontsource-variable/nunito";
 import "./i18n";
 import App from "./App";
 import "./index.css";

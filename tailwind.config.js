@@ -26,10 +26,12 @@ export default {
         error: "rgb(var(--error) / <alpha-value>)"
       },
       fontFamily: {
-        sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"]
+        sans: ["Nunito Variable", "Avenir Next Rounded", "ui-sans-serif", "system-ui", "sans-serif"],
+        display: ["Fredoka Variable", "Nunito Variable", "Avenir Next Rounded", "ui-sans-serif", "system-ui", "sans-serif"]
       },
       boxShadow: {
-        panel: "0 18px 50px rgba(0, 0, 0, 0.28)"
+        panel: "0 22px 60px rgb(35 55 88 / 0.12)",
+        cute: "0 14px 32px rgb(57 76 120 / 0.13)"
       },
       animation: {
         "spin-slow": "spin 15s linear infinite"
