@@ -1,24 +1,33 @@
-# SwiftShare
+# LocalSlack
 
-SwiftShare একটি ওপেন-সোর্স ডেস্কটপ অ্যাপ, যা লোকাল Wi-Fi বা LAN নেটওয়ার্কে দ্রুত ফাইল শেয়ার করার জন্য তৈরি। এটি LocalSend থেকে অনুপ্রাণিত এবং React, TypeScript, Rust ও Tauri v2 দিয়ে তৈরি।
+LocalSlack হলো same Wi-Fi বা LAN-এর জন্য local-first desktop collaboration app। এটি Slack-এর মতো public channel, message, asset sharing এবং offline catch-up sync দেয়, কিন্তু internet বা central cloud server লাগে না।
 
-রিপোজিটরি: https://github.com/mozaddedalfeshani/swiftshare
+রিপোজিটরি: https://github.com/mozaddedalfeshani/localslack
 
 English documentation: [README.md](README.md)
 
-## ফিচার
+## কী করে
 
-- লোকাল নেটওয়ার্কে ফাইল, ফোল্ডার, ছবি, মিডিয়া এবং টেক্সট পাঠানো।
-- ইন্টারনেট বা কোনো কেন্দ্রীয় সার্ভার ছাড়াই ফাইল গ্রহণ।
-- একই Wi-Fi/LAN-এ থাকা ডিভাইস খুঁজে পাওয়া।
-- ক্লিপবোর্ড টেক্সট পাঠানো ও গ্রহণ।
-- পছন্দের ডিভাইস পিন করার জন্য Favorites।
-- পাঠানো ও পাওয়া ফাইলের History।
-- Dark, Light এবং System থিম।
-- English ও বাংলা ভাষা সাপোর্ট।
-- Windows, macOS এবং Linux-এর জন্য ডেস্কটপ বিল্ড।
+- একই local network-এর সবাই public channel member হয়।
+- Default ৩টি channel: `#general`, `#media-share`, `#announcements`।
+- Group messaging, এবং history প্রত্যেক device-এ localভাবে save হয়।
+- Channel-এর ভিতরে file/asset share করা যায়।
+- Offline catch-up sync: কোনো member পরে ফিরে এলে online members থেকে latest channel changes নিয়ে নেয়।
+- Shared file card-এ কতজন member-এর কাছে asset আছে তার badge দেখা যায়।
+- নিজের device-এ file না থাকলে online member-এর PC থেকে download করা যায়।
+- শুধু author নিজের message edit/delete করতে পারে।
+- Channel delete event sync হলে saved asset file device থেকে remove হয়।
+- Default ৫ মাস retention cleanup; পুরনো message এবং saved asset auto-remove করা যায়।
+- Direct file send, receive prompt, clipboard text sharing, favorites এবং transfer history আছে।
+- Windows, macOS ও Linux-এর জন্য desktop build।
 
-## টেক স্ট্যাক
+## Sync কীভাবে কাজ করে
+
+LocalSlack peer-to-peer। প্রত্যেক device Sled database-এ channel event localভাবে save করে। mDNS দিয়ে same network-এর devices খুঁজে পায় এবং নিয়মিত channel events exchange করে।
+
+কোনো member app বন্ধ করে ১ ঘণ্টা পরে ফিরে এলে, তার app online members-এর সঙ্গে contact করে latest complete channel state sync করে local database-এ save করবে। Shared file cloud-এ upload হয় না; member-দের computer-এই থাকে। আপনার device-এ কোনো asset না থাকলে card-এ Download button দেখাবে এবং যেই online member-এর কাছে file আছে তার কাছ থেকে download করবে।
+
+## Tech Stack
 
 - Frontend: React 18, TypeScript, Tailwind CSS, Framer Motion
 - State: Zustand
@@ -27,7 +36,7 @@ English documentation: [README.md](README.md)
 - Discovery এবং storage: mDNS, Sled
 - Tests: Vitest, React Testing Library, Rust tests
 
-## ডেভেলপমেন্ট
+## Development
 
 ডিপেন্ডেন্সি ইনস্টল করুন:
 
@@ -35,7 +44,7 @@ English documentation: [README.md](README.md)
 bun install
 ```
 
-ডেস্কটপ অ্যাপ চালান:
+Desktop app চালান:
 
 ```bash
 bun run tauri:dev
@@ -53,6 +62,12 @@ Frontend build করুন:
 bun run build
 ```
 
+Rust test চালান:
+
+```bash
+cargo test --manifest-path src-tauri/Cargo.toml
+```
+
 Desktop bundle build করুন:
 
 ```bash
@@ -68,6 +83,14 @@ sudo apt-get update
 sudo apt-get install -y libglib2.0-dev libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev pkg-config
 ```
 
+## Local Network Details
+
+- Discovery service type: `_localslack._tcp.local.`
+- Default receive port: `53317`
+- Default app data folder: `LocalSlack`
+- Default received file folder: `~/Downloads/LocalSlack`
+- Channel asset selected save path-এর ভিতরে `<channel-id>/` folder-এ save হয়।
+
 ## Releases
 
 `v0.1.0`-এর মতো tag push করলে, অথবা GitHub Actions থেকে workflow manually চালালে installer build হবে।
@@ -82,4 +105,4 @@ Release workflow একটি draft release তৈরি করে এবং ins
 
 ## License
 
-এটি ওপেন-সোর্স। Stable release publish করার আগে আপনার পছন্দের license file যোগ করুন।
+এটি open source। Stable release publish করার আগে আপনার পছন্দের license file যোগ করুন।

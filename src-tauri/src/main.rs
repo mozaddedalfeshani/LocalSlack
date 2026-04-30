@@ -1,3 +1,3 @@
 fn main() {
-    swiftshare_lib::run();
+    localslack_lib::run();
 }

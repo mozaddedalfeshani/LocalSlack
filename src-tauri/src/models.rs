@@ -121,6 +121,53 @@ pub struct HistoryEntry {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
+pub enum ChannelEventKind {
+    Text,
+    Asset,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ChannelEvent {
+    pub id: String,
+    pub channel_id: String,
+    pub kind: ChannelEventKind,
+    pub author_id: String,
+    pub author_name: String,
+    #[serde(default)]
+    pub author_emoji: String,
+    #[serde(default)]
+    pub author_ip: String,
+    #[serde(default)]
+    pub text: Option<String>,
+    #[serde(default)]
+    pub asset_id: Option<String>,
+    #[serde(default)]
+    pub file_name: Option<String>,
+    #[serde(default)]
+    pub file_size: Option<u64>,
+    #[serde(default)]
+    pub file_path: Option<String>,
+    #[serde(default = "default_available_count")]
+    pub available_count: u32,
+    pub created_at: u64,
+    pub updated_at: u64,
+    #[serde(default)]
+    pub deleted_at: Option<u64>,
+}
+
+fn default_available_count() -> u32 {
+    1
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ChannelEventsResponse {
+    pub events: Vec<ChannelEvent>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct ClipboardPayload {
     pub text: String,
     pub sender: DeviceInfo,
@@ -132,6 +179,8 @@ pub struct ClipboardPayload {
 pub struct PrepareUploadRequest {
     pub sender: DeviceInfo,
     pub files: Vec<FileMetadata>,
+    #[serde(default)]
+    pub channel_id: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -140,6 +189,8 @@ pub struct IncomingTransferRequest {
     pub session_id: String,
     pub sender: DeviceInfo,
     pub files: Vec<FileMetadata>,
+    #[serde(default)]
+    pub channel_id: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -166,6 +217,12 @@ pub struct AppSettings {
     pub start_minimized: bool,
     pub allowed_ips: Vec<String>,
     pub blocked_ips: Vec<String>,
+    #[serde(default = "default_retention_months")]
+    pub retention_months: u32,
+}
+
+pub fn default_retention_months() -> u32 {
+    5
 }
 
 fn default_quick_save_mode() -> String {

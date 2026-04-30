@@ -2255,6 +2255,42 @@ dependencies = [
 ]
 
 [[package]]
+name = "localslack"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "arboard",
+ "async-stream",
+ "axum",
+ "bytes",
+ "chrono",
+ "dirs 5.0.1",
+ "futures-util",
+ "local-ip-address",
+ "mdns-sd",
+ "mime_guess",
+ "mockall",
+ "open",
+ "rcgen",
+ "reqwest 0.12.28",
+ "rustls",
+ "serde",
+ "serde_json",
+ "sha2",
+ "sled",
+ "tauri",
+ "tauri-build",
+ "tempfile",
+ "tokio",
+ "tokio-test",
+ "tokio-util",
+ "tower-http 0.5.2",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
 name = "lock_api"
 version = "0.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4259,42 +4295,6 @@ dependencies = [
  "base64 0.21.7",
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "swiftshare"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "arboard",
- "async-stream",
- "axum",
- "bytes",
- "chrono",
- "dirs 5.0.1",
- "futures-util",
- "local-ip-address",
- "mdns-sd",
- "mime_guess",
- "mockall",
- "open",
- "rcgen",
- "reqwest 0.12.28",
- "rustls",
- "serde",
- "serde_json",
- "sha2",
- "sled",
- "tauri",
- "tauri-build",
- "tempfile",
- "tokio",
- "tokio-test",
- "tokio-util",
- "tower-http 0.5.2",
- "tracing",
- "tracing-subscriber",
- "uuid",
 ]
 
 [[package]]

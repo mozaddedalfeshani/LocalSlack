@@ -14,7 +14,7 @@ pub struct SettingsStore {
 impl SettingsStore {
     pub fn load() -> Result<Self> {
         let dir = app_dir()?;
-        fs::create_dir_all(&dir).context("failed to create SwiftShare config directory")?;
+        fs::create_dir_all(&dir).context("failed to create LocalSlack config directory")?;
         let path = dir.join("settings.json");
         let mut should_persist = false;
         let mut settings = if path.exists() {
@@ -81,7 +81,7 @@ pub fn app_dir() -> Result<PathBuf> {
     let base = dirs::data_local_dir()
         .or_else(dirs::data_dir)
         .context("failed to determine local data directory")?;
-    Ok(base.join("SwiftShare"))
+    Ok(base.join("LocalSlack"))
 }
 
 pub fn default_settings() -> AppSettings {
@@ -92,7 +92,7 @@ pub fn default_settings() -> AppSettings {
         device_name: hostname(),
         device_emoji: generate_device_emoji(),
         device_id: uuid::Uuid::new_v4().to_string(),
-        save_path: save_base.join("SwiftShare").to_string_lossy().to_string(),
+        save_path: save_base.join("LocalSlack").to_string_lossy().to_string(),
         quick_save: false,
         quick_save_mode: "off".to_string(),
         auto_open: false,
@@ -106,6 +106,7 @@ pub fn default_settings() -> AppSettings {
         start_minimized: false,
         allowed_ips: Vec::new(),
         blocked_ips: Vec::new(),
+        retention_months: 5,
     }
 }
 
@@ -135,10 +136,10 @@ fn hostname() -> String {
     }
     let name = std::env::var("HOSTNAME")
         .or_else(|_| std::env::var("COMPUTERNAME"))
-        .unwrap_or_else(|_| "SwiftShare Device".to_string());
+        .unwrap_or_else(|_| "LocalSlack Device".to_string());
     let trimmed = name.trim();
     if trimmed.is_empty() {
-        "SwiftShare Device".to_string()
+        "LocalSlack Device".to_string()
     } else {
         trimmed.to_string()
     }
@@ -173,7 +174,7 @@ fn is_generated_cute_name(name: &str) -> bool {
 fn should_migrate_device_name(name: &str) -> bool {
     let trimmed = name.trim();
     trimmed.is_empty()
-        || trimmed.starts_with("SwiftShare Device")
+        || trimmed.starts_with("LocalSlack Device")
         || is_generated_cute_name(trimmed)
 }
 

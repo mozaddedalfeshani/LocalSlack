@@ -69,11 +69,20 @@ pub async fn send_files(
     sender: DeviceInfo,
     target: DeviceInfo,
     paths: Vec<String>,
+    channel_id: Option<String>,
+    asset_ids: Option<Vec<String>>,
 ) -> Result<()> {
     let file_paths: Vec<PathBuf> = paths.into_iter().map(PathBuf::from).collect();
     let mut files = Vec::new();
     for path in &file_paths {
         files.push(build_metadata(path).await?);
+    }
+    if let Some(asset_ids) = asset_ids {
+        for (file, asset_id) in files.iter_mut().zip(asset_ids.into_iter()) {
+            if !asset_id.trim().is_empty() {
+                file.id = asset_id;
+            }
+        }
     }
     let prepare = Client::new()
         .post(format!(
@@ -83,6 +92,7 @@ pub async fn send_files(
         .json(&PrepareUploadRequest {
             sender,
             files: files.clone(),
+            channel_id,
         })
         .send()
         .await

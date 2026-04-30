@@ -4,10 +4,10 @@ use arboard::Clipboard;
 use reqwest::Client;
 use tauri::{AppHandle, Emitter};
 
-pub async fn send_clipboard(target: DeviceInfo, text: String) -> Result<()> {
+pub async fn send_clipboard(sender: DeviceInfo, target: DeviceInfo, text: String) -> Result<()> {
     let payload = ClipboardPayload {
         text,
-        sender: target.clone(),
+        sender,
         timestamp: crate::models::now_unix(),
     };
     Client::new()

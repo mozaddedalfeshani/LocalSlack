@@ -72,7 +72,7 @@ export function GroupShare(props: Props) {
           <div className="rounded-xl border border-dashed border-[#315048] p-6 text-center">
             <Building2 className="mx-auto mb-3 text-[#55736b]" size={34} />
             <p className="font-bold text-[#dbe9e4]">No devices nearby</p>
-            <p className="mt-1 text-sm text-[#8fa59f]">Ask teammates to open SwiftShare on the same Wi-Fi.</p>
+            <p className="mt-1 text-sm text-[#8fa59f]">Ask teammates to open LocalSlack on the same Wi-Fi.</p>
           </div>
         )}
         <div className="space-y-2">

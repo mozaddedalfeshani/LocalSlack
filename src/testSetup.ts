@@ -5,7 +5,7 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn((command: string) => {
     if (command === "get_settings") {
       return Promise.resolve({
-        deviceName: "SwiftShare Device",
+        deviceName: "LocalSlack Device",
         deviceEmoji: "🚀",
         savePath: "",
         quickSave: false,
@@ -20,19 +20,20 @@ vi.mock("@tauri-apps/api/core", () => ({
         compactMode: false,
         startMinimized: false,
         allowedIps: [],
-        blockedIps: []
+        blockedIps: [],
+        retentionMonths: 5
       });
     }
     if (command === "get_network_status") {
       return Promise.resolve({
-        deviceName: "SwiftShare Device",
+        deviceName: "LocalSlack Device",
         hidden: false,
         hosting: true,
         discoveryRunning: true,
         advertising: true,
         localIps: ["192.168.1.20"],
         port: 53317,
-        serviceType: "_swiftshare._tcp.local.",
+        serviceType: "_localslack._tcp.local.",
         issues: []
       });
     }

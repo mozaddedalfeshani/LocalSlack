@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Sidebar } from "./Sidebar";
+import type { ChannelId } from "../../data/channels";
 import type { DeviceInfo } from "../../types";
 
 interface Props {
@@ -9,8 +10,10 @@ interface Props {
   selected?: DeviceInfo;
   loading?: boolean;
   error?: string;
-  view: "receive" | "send" | "clipboard" | "history" | "settings";
-  onView: (view: "receive" | "send" | "clipboard" | "history" | "settings") => void;
+  view: "channel" | "receive" | "send" | "clipboard" | "history" | "settings";
+  activeChannelId: ChannelId;
+  onView: (view: "channel" | "receive" | "send" | "clipboard" | "history" | "settings") => void;
+  onChannel: (channelId: ChannelId) => void;
   onSelect: (device: DeviceInfo) => void;
   onToggleFavorite: (device: DeviceInfo) => void;
   onSettings: () => void;

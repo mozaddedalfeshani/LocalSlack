@@ -1,9 +1,13 @@
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useState } from "react";
+import { ChannelShare } from "./components/channel/ChannelShare";
 import { useDevices } from "./hooks/useDevices";
 import { useFavorites } from "./hooks/useFavorites";
 import { useSettings } from "./hooks/useSettings";
 import { useTransfer } from "./hooks/useTransfer";
+import { getChannel } from "./data/channels";
+import { useChannelStore } from "./store/channelStore";
 import { useUiStore } from "./store/uiStore";
 import { ClipboardReceive } from "./components/clipboard/ClipboardReceive";
 import { ClipboardSend } from "./components/clipboard/ClipboardSend";
@@ -15,7 +19,8 @@ import { SendHome } from "./components/send/SendHome";
 import { SettingsPage } from "./components/settings/SettingsPage";
 import { ReceiveDialog } from "./components/transfer/ReceiveDialog";
 import { ProgressPage } from "./components/transfer/ProgressPage";
-import type { DeviceInfo, NetworkStatus } from "./types";
+import type { ChannelEvent, ClipboardPayload, DeviceInfo, NetworkStatus } from "./types";
+import { decodeChannelText } from "./utils/channelPayload";
 
 export default function App() {
   const devices = useDevices();
@@ -25,8 +30,12 @@ export default function App() {
   const ui = useUiStore();
   const [networkDialogOpen, setNetworkDialogOpen] = useState(true);
   const [networkStatus, setNetworkStatus] = useState<NetworkStatus>();
+  const [localDevice, setLocalDevice] = useState<DeviceInfo>();
   const [networkStatusLoading, setNetworkStatusLoading] = useState(false);
   const [networkStatusError, setNetworkStatusError] = useState<string>();
+  const setChannelEvents = useChannelStore((state) => state.setEvents);
+  const upsertChannelEvent = useChannelStore((state) => state.upsertEvent);
+
   useEffect(() => {
     void invoke("set_receive_mode_active", { active: !settings.settings.hidden });
   }, [settings.settings.hidden]);
@@ -48,6 +57,61 @@ export default function App() {
     const timeout = window.setTimeout(() => void refreshNetworkStatus(), 1500);
     return () => window.clearTimeout(timeout);
   }, [refreshNetworkStatus, settings.settings.hidden]);
+
+  useEffect(() => {
+    invoke<DeviceInfo>("get_device_info")
+      .then(setLocalDevice)
+      .catch(() => undefined);
+  }, [settings.settings.deviceName, settings.settings.deviceEmoji]);
+
+  const refreshChannelEvents = useCallback(async () => {
+    try {
+      setChannelEvents(await invoke<ChannelEvent[]>("get_channel_events"));
+    } catch {
+      // Channel sync is opportunistic; the UI can continue with local state.
+    }
+  }, [setChannelEvents]);
+
+  useEffect(() => {
+    void refreshChannelEvents();
+  }, [refreshChannelEvents]);
+
+  useEffect(() => {
+    const sync = async () => {
+      try {
+        setChannelEvents(await invoke<ChannelEvent[]>("sync_channels"));
+      } catch {
+        // Offline-only use is allowed.
+      }
+    };
+    void sync();
+    const id = window.setInterval(() => void sync(), 15_000);
+    return () => window.clearInterval(id);
+  }, [devices.devices.length, setChannelEvents]);
+
+  useEffect(() => {
+    const unlisten = listen<ClipboardPayload>("clipboard-received", (event) => {
+      const payload = decodeChannelText(event.payload.text);
+      if (!payload) return;
+      upsertChannelEvent({
+        id: `live:${event.payload.sender.id}:${payload.channelId}:${payload.timestamp}:${payload.text}`,
+        channelId: payload.channelId,
+        kind: "text",
+        authorId: payload.sender?.id ?? event.payload.sender.id,
+        authorName: payload.sender?.name ?? event.payload.sender.name,
+        authorEmoji: payload.sender?.emoji ?? event.payload.sender.emoji,
+        authorIp: event.payload.sender.ip,
+        text: payload.text,
+        availableCount: 1,
+        createdAt: payload.timestamp,
+        updatedAt: payload.timestamp,
+      });
+      ui.setChannel(payload.channelId);
+    });
+    return () => {
+      unlisten.then((fn) => fn()).catch(() => undefined);
+    };
+  }, [upsertChannelEvent, ui]);
 
   const toggleFavorite = async (device: typeof devices.devices[number]) => {
     const isFavorite = !device.isFavorite;
@@ -80,9 +144,118 @@ export default function App() {
     void transfer.send(device);
   }, [devices, transfer]);
 
+  const activeChannel = getChannel(ui.activeChannelId);
+  const currentLocalDevice: DeviceInfo = localDevice ?? {
+    id: settings.settings.deviceId || "local-device",
+    name: settings.settings.deviceName || "You",
+    emoji: settings.settings.deviceEmoji,
+    ip: "local",
+    port: settings.settings.port,
+    deviceType: "Desktop",
+    isFavorite: false,
+    lastSeen: Math.floor(Date.now() / 1000),
+  };
+
+  const sendChannelFiles = useCallback(() => {
+    if (transfer.files.length === 0) return;
+    void (async () => {
+      const events: ChannelEvent[] = [];
+      for (const item of transfer.files) {
+        const event = await invoke<ChannelEvent>("save_channel_asset_event", {
+          channelId: ui.activeChannelId,
+          fileName: item.file.name,
+          fileSize: item.file.size,
+          filePath: item.path,
+          recipientCount: devices.devices.length,
+        });
+        events.push(event);
+        upsertChannelEvent(event);
+      }
+      await transfer.sendToDevices(
+        devices.devices,
+        `# ${activeChannel.name}`,
+        ui.activeChannelId,
+        events.map((event) => event.assetId ?? event.id)
+      );
+      window.setTimeout(() => void invoke<ChannelEvent[]>("sync_channels").then(setChannelEvents).catch(() => undefined), 1000);
+    })().catch(() => undefined);
+  }, [activeChannel.name, devices.devices, setChannelEvents, transfer, ui.activeChannelId, upsertChannelEvent]);
+
+  const sendChannelMessage = useCallback((text: string) => {
+    void invoke<ChannelEvent>("save_channel_text_event", {
+      channelId: ui.activeChannelId,
+      text,
+    })
+      .then((event) => {
+        upsertChannelEvent(event);
+        return invoke<ChannelEvent[]>("sync_channels");
+      })
+      .then(setChannelEvents)
+      .catch(() => transfer.sendTextToDevices(devices.devices, ui.activeChannelId, text, currentLocalDevice));
+  }, [currentLocalDevice, devices.devices, setChannelEvents, transfer, ui.activeChannelId, upsertChannelEvent]);
+
+  const deleteChannelEvent = useCallback((id: string) => {
+    void invoke<ChannelEvent | null>("delete_channel_event", { id })
+      .then((event) => {
+        if (event) upsertChannelEvent(event);
+        return invoke<ChannelEvent[]>("sync_channels");
+      })
+      .then(setChannelEvents)
+      .catch(() => undefined);
+  }, [setChannelEvents, upsertChannelEvent]);
+
+  const editChannelMessage = useCallback((id: string, text: string) => {
+    void invoke<ChannelEvent | null>("edit_channel_text_event", { id, text })
+      .then((event) => {
+        if (event) upsertChannelEvent(event);
+        return invoke<ChannelEvent[]>("sync_channels");
+      })
+      .then(setChannelEvents)
+      .catch((error) => {
+        useUiStore.getState().showToast(String(error));
+      });
+  }, [setChannelEvents, upsertChannelEvent]);
+
+  const downloadChannelAsset = useCallback((id: string) => {
+    void invoke<ChannelEvent>("download_channel_asset", { eventId: id })
+      .then(upsertChannelEvent)
+      .catch((error) => {
+        useUiStore.getState().showToast(String(error));
+      });
+  }, [upsertChannelEvent]);
+
+  const openChannelAsset = useCallback((path: string) => {
+    void invoke("open_file", { path }).catch((error) => {
+      useUiStore.getState().showToast(String(error));
+    });
+  }, []);
+
   const isTransferring = transfer.outgoing != null || transfer.receiving != null || transfer.progress.length > 0;
 
-  const content = ui.view === "receive" ? (
+  const content = ui.view === "channel" ? (
+    <ChannelShare
+      channel={activeChannel}
+      localDevice={currentLocalDevice}
+      devices={devices.devices}
+      loading={devices.loading}
+      error={devices.error}
+      files={transfer.files}
+      progress={transfer.progress}
+      transferError={transfer.error}
+      onRefresh={devices.refresh}
+      onPickFiles={() => transfer.pick("files")}
+      onPickFolder={() => transfer.pick("folder")}
+      onRemoveFile={transfer.removeFile}
+      onClearFiles={transfer.clearFiles}
+      onSendFiles={sendChannelFiles}
+      onSendMessage={sendChannelMessage}
+      onDeleteEvent={deleteChannelEvent}
+      onEditMessage={editChannelMessage}
+      onDownloadAsset={downloadChannelAsset}
+      onOpenAsset={openChannelAsset}
+      onCancel={(id) => transfer.cancel(id)}
+    />
+  ) : ui.view === "receive" ? (
     <ReceiveHome
       deviceName={settings.settings.deviceName}
       emoji={settings.settings.deviceEmoji}
@@ -130,7 +303,9 @@ export default function App() {
         loading={devices.loading}
         error={devices.error}
         view={ui.view}
+        activeChannelId={ui.activeChannelId}
         onView={ui.setView}
+        onChannel={ui.setChannel}
         onSelect={devices.selectDevice}
         onToggleFavorite={toggleFavorite}
         onSettings={() => ui.setView("settings")}

@@ -31,6 +31,29 @@ export interface FileMetadata {
   sha256: string;
 }
 
+export type ChannelId = "general" | "media" | "announcements";
+
+export type ChannelEventKind = "text" | "asset" | "Text" | "Asset";
+
+export interface ChannelEvent {
+  id: string;
+  channelId: ChannelId;
+  kind: ChannelEventKind;
+  authorId: string;
+  authorName: string;
+  authorEmoji?: string;
+  authorIp?: string;
+  text?: string;
+  assetId?: string;
+  fileName?: string;
+  fileSize?: number;
+  filePath?: string;
+  availableCount: number;
+  createdAt: number;
+  updatedAt: number;
+  deletedAt?: number;
+}
+
 export type TransferStatus = "pending" | "accepted" | "rejected" | "inProgress" | "completed" | "failed" | "cancelled";
 export type TransferDirection = "sent" | "received" | "Sent" | "Received";
 
@@ -54,6 +77,7 @@ export interface IncomingTransferRequest {
   sessionId: string;
   sender: DeviceInfo;
   files: FileMetadata[];
+  channelId?: ChannelId;
 }
 
 export type ReceivingTransfer = IncomingTransferRequest;
@@ -99,6 +123,7 @@ export interface AppSettings {
   startMinimized: boolean;
   allowedIps: string[];
   blockedIps: string[];
+  retentionMonths: number;
 }
 
 export interface FileLike {

@@ -1,4 +1,5 @@
 pub mod clipboard;
+pub mod channels;
 pub mod crypto;
 pub mod discovery;
 pub mod favorites;
@@ -9,11 +10,13 @@ pub mod server;
 pub mod settings;
 
 use anyhow::Context;
+use channels::ChannelStore;
 use discovery::DiscoveryState;
 use favorites::FavoritesStore;
 use history::HistoryStore;
 use models::{
-    AppSettings, DeviceInfo, HistoryEntry, IncomingTransferRequest, NetworkStatus, PathEntry,
+    AppSettings, ChannelEvent, ChannelEventKind, ChannelEventsResponse, DeviceInfo, HistoryEntry,
+    IncomingTransferRequest, NetworkStatus, PathEntry,
 };
 use sender::TransferCanceller;
 use settings::SettingsStore;
@@ -32,6 +35,7 @@ pub struct AppState {
     settings: SettingsStore,
     discovery: DiscoveryState,
     history: HistoryStore,
+    channels: ChannelStore,
     favorites: FavoritesStore,
     canceller: TransferCanceller,
     accepted_sessions: Arc<RwLock<HashMap<String, bool>>>,
@@ -84,9 +88,19 @@ async fn send_files(
     state: State<'_, AppState>,
     target: DeviceInfo,
     file_paths: Vec<String>,
+    channel_id: Option<String>,
+    asset_ids: Option<Vec<String>>,
 ) -> Result<(), String> {
     let sender = state.discovery.local_device(&state.settings).await;
-    sender::send_files(app, state.canceller.clone(), sender, target, file_paths)
+    sender::send_files(
+        app,
+        state.canceller.clone(),
+        sender,
+        target,
+        file_paths,
+        channel_id,
+        asset_ids,
+    )
         .await
         .map_err(|error| error.to_string())
 }
@@ -120,8 +134,13 @@ async fn reject_transfer(state: State<'_, AppState>, session_id: String) -> Resu
 }
 
 #[tauri::command]
-async fn send_clipboard_text(target: DeviceInfo, text: String) -> Result<(), String> {
-    clipboard::send_clipboard(target, text)
+async fn send_clipboard_text(
+    state: State<'_, AppState>,
+    target: DeviceInfo,
+    text: String,
+) -> Result<(), String> {
+    let sender = state.discovery.local_device(&state.settings).await;
+    clipboard::send_clipboard(sender, target, text)
         .await
         .map_err(|error| error.to_string())
 }
@@ -134,6 +153,196 @@ async fn read_clipboard() -> Result<String, String> {
 #[tauri::command]
 async fn write_clipboard(text: String) -> Result<(), String> {
     clipboard::write_system_clipboard(text).map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+async fn get_channel_events(state: State<'_, AppState>) -> Result<Vec<ChannelEvent>, String> {
+    state.channels.events().map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+async fn save_channel_text_event(
+    state: State<'_, AppState>,
+    channel_id: String,
+    text: String,
+) -> Result<ChannelEvent, String> {
+    let author = state.discovery.local_device(&state.settings).await;
+    let now = models::now_unix();
+    let event = ChannelEvent {
+        id: Uuid::new_v4().to_string(),
+        channel_id,
+        kind: ChannelEventKind::Text,
+        author_id: author.id,
+        author_name: author.name,
+        author_emoji: author.emoji,
+        author_ip: author.ip,
+        text: Some(text),
+        asset_id: None,
+        file_name: None,
+        file_size: None,
+        file_path: None,
+        available_count: 1,
+        created_at: now,
+        updated_at: now,
+        deleted_at: None,
+    };
+    state
+        .channels
+        .save_event(event.clone())
+        .map_err(|error| error.to_string())?;
+    Ok(event)
+}
+
+#[tauri::command]
+async fn save_channel_asset_event(
+    state: State<'_, AppState>,
+    channel_id: String,
+    file_name: String,
+    file_size: u64,
+    file_path: String,
+    recipient_count: u32,
+) -> Result<ChannelEvent, String> {
+    let author = state.discovery.local_device(&state.settings).await;
+    let now = models::now_unix();
+    let asset_id = Uuid::new_v4().to_string();
+    let event = ChannelEvent {
+        id: asset_id.clone(),
+        channel_id,
+        kind: ChannelEventKind::Asset,
+        author_id: author.id,
+        author_name: author.name,
+        author_emoji: author.emoji,
+        author_ip: author.ip,
+        text: None,
+        asset_id: Some(asset_id),
+        file_name: Some(file_name),
+        file_size: Some(file_size),
+        file_path: Some(file_path),
+        available_count: recipient_count.saturating_add(1),
+        created_at: now,
+        updated_at: now,
+        deleted_at: None,
+    };
+    state
+        .channels
+        .save_event(event.clone())
+        .map_err(|error| error.to_string())?;
+    Ok(event)
+}
+
+#[tauri::command]
+async fn delete_channel_event(
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<Option<ChannelEvent>, String> {
+    let author = state.discovery.local_device(&state.settings).await;
+    state
+        .channels
+        .mark_deleted(&id, &author.id)
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+async fn edit_channel_text_event(
+    state: State<'_, AppState>,
+    id: String,
+    text: String,
+) -> Result<Option<ChannelEvent>, String> {
+    let author = state.discovery.local_device(&state.settings).await;
+    state
+        .channels
+        .edit_text(&id, &author.id, text)
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+async fn sync_channels(state: State<'_, AppState>) -> Result<Vec<ChannelEvent>, String> {
+    let devices = state.discovery.devices(&state.favorites).await;
+    let client = reqwest::Client::new();
+    let local_events = state
+        .channels
+        .events()
+        .map_err(|error| error.to_string())?;
+    for device in devices {
+        let url = format!("http://{}:{}/api/v1/channel/events", device.ip, device.port);
+        if let Ok(response) = client.get(&url).send().await {
+            if let Ok(response) = response.error_for_status() {
+                if let Ok(remote) = response.json::<ChannelEventsResponse>().await {
+                    let _ = state.channels.save_remote_events(remote.events);
+                }
+            }
+        }
+        let current_events = state
+            .channels
+            .events()
+            .map_err(|error| error.to_string())?;
+        let _ = client
+            .post(&url)
+            .json(&ChannelEventsResponse {
+                events: current_events,
+            })
+            .send()
+            .await;
+    }
+    state
+        .channels
+        .save_events(local_events)
+        .map_err(|error| error.to_string())?;
+    state.channels.events().map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+async fn download_channel_asset(
+    state: State<'_, AppState>,
+    event_id: String,
+) -> Result<ChannelEvent, String> {
+    let mut event = state
+        .channels
+        .event(&event_id)
+        .map_err(|error| error.to_string())?
+        .ok_or_else(|| "channel asset was not found".to_string())?;
+    let asset_id = event
+        .asset_id
+        .clone()
+        .unwrap_or_else(|| event.id.clone());
+    let file_name = event
+        .file_name
+        .clone()
+        .unwrap_or_else(|| "LocalSlack asset".to_string());
+    let devices = state.discovery.devices(&state.favorites).await;
+    let client = reqwest::Client::new();
+
+    for device in devices {
+        let url = format!(
+            "http://{}:{}/api/v1/channel/assets/{}",
+            device.ip, device.port, asset_id
+        );
+        let Ok(response) = client.get(url).send().await else {
+            continue;
+        };
+        let Ok(response) = response.error_for_status() else {
+            continue;
+        };
+        let Ok(bytes) = response.bytes().await else {
+            continue;
+        };
+
+        let settings = state.settings.get().await;
+        let save_dir = channel_save_dir(&settings.save_path, &event.channel_id);
+        std::fs::create_dir_all(&save_dir).map_err(|error| error.to_string())?;
+        let output_path = unique_local_path(save_dir, &file_name);
+        std::fs::write(&output_path, bytes).map_err(|error| error.to_string())?;
+        event.file_path = Some(output_path.to_string_lossy().to_string());
+        event.available_count = event.available_count.max(1);
+        event.updated_at = models::now_unix();
+        state
+            .channels
+            .save_event(event.clone())
+            .map_err(|error| error.to_string())?;
+        return Ok(event);
+    }
+
+    Err("no online member has this asset right now".to_string())
 }
 
 #[tauri::command]
@@ -194,10 +403,15 @@ async fn get_settings(state: State<'_, AppState>) -> Result<AppSettings, String>
 
 #[tauri::command]
 async fn save_settings(state: State<'_, AppState>, settings: AppSettings) -> Result<(), String> {
+    let retention_months = settings.retention_months;
     state
         .settings
         .save(settings)
         .await
+        .map_err(|error| error.to_string())?;
+    state
+        .channels
+        .cleanup_expired(retention_months)
         .map_err(|error| error.to_string())?;
     state
         .discovery
@@ -350,6 +564,40 @@ fn run_picker_command(command: &mut Command) -> anyhow::Result<Vec<String>> {
         .collect())
 }
 
+fn channel_save_dir(save_path: &str, channel_id: &str) -> PathBuf {
+    let safe_channel = channel_id
+        .chars()
+        .filter(|ch| ch.is_ascii_alphanumeric() || *ch == '-' || *ch == '_')
+        .collect::<String>();
+    if safe_channel.is_empty() {
+        PathBuf::from(save_path)
+    } else {
+        PathBuf::from(save_path).join(safe_channel)
+    }
+}
+
+fn unique_local_path(dir: PathBuf, file_name: &str) -> PathBuf {
+    let base = dir.join(file_name);
+    if !base.exists() {
+        return base;
+    }
+    let path = Path::new(file_name);
+    let stem = path.file_stem().and_then(|value| value.to_str()).unwrap_or("file");
+    let ext = path.extension().and_then(|value| value.to_str()).unwrap_or("");
+    for index in 1..1000 {
+        let candidate_name = if ext.is_empty() {
+            format!("{stem} ({index})")
+        } else {
+            format!("{stem} ({index}).{ext}")
+        };
+        let candidate = dir.join(candidate_name);
+        if !candidate.exists() {
+            return candidate;
+        }
+    }
+    dir.join(format!("{}-{}", Uuid::new_v4(), file_name))
+}
+
 pub fn run() {
     tracing_subscriber::fmt().with_target(false).init();
     tauri::Builder::default()
@@ -359,6 +607,7 @@ pub fn run() {
             std::fs::create_dir_all(&db_dir).context("failed to create db directory")?;
             let db = sled::open(db_dir).context("failed to open app database")?;
             let history = HistoryStore::open(db.open_tree("history")?);
+            let channels = ChannelStore::open(db.open_tree("channels")?);
             let favorites = FavoritesStore::open(db.open_tree("favorites")?);
             let discovery = DiscoveryState::new(settings.device_id.clone());
             let accepted_sessions = Arc::new(RwLock::new(HashMap::new()));
@@ -367,6 +616,7 @@ pub fn run() {
                 settings: settings.clone(),
                 discovery: discovery.clone(),
                 history: history.clone(),
+                channels: channels.clone(),
                 favorites: favorites.clone(),
                 canceller: TransferCanceller::default(),
                 accepted_sessions: accepted_sessions.clone(),
@@ -381,9 +631,11 @@ pub fn run() {
                     device,
                     settings: settings.clone(),
                     history,
+                    channels: channels.clone(),
                     favorites: favorites.clone(),
                     sessions: Arc::new(RwLock::new(HashMap::new())),
                     sessions_senders: Arc::new(RwLock::new(HashMap::new())),
+                    sessions_channels: Arc::new(RwLock::new(HashMap::new())),
                     sessions_completed: Arc::new(RwLock::new(HashMap::new())),
                     pending_incoming,
                     accepted_sessions,
@@ -423,6 +675,13 @@ pub fn run() {
             send_clipboard_text,
             read_clipboard,
             write_clipboard,
+            get_channel_events,
+            save_channel_text_event,
+            save_channel_asset_event,
+            delete_channel_event,
+            edit_channel_text_event,
+            sync_channels,
+            download_channel_asset,
             add_favorite,
             remove_favorite,
             get_favorites,
@@ -439,7 +698,7 @@ pub fn run() {
             pick_paths
         ])
         .run(tauri::generate_context!())
-        .expect("failed to run SwiftShare");
+        .expect("failed to run LocalSlack");
 }
 
 #[cfg(test)]

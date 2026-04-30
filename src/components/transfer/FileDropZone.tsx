@@ -55,7 +55,7 @@ export function FileDropZone({ files, selectedDevice, error, onFiles, onPickFile
   const addBrowserFiles = (list: FileList) => {
     const selected = filesFromList(list);
     if (selected.length === 0) {
-      setLocalError("Use the File or Folder button, or drag files from the OS, so SwiftShare can read desktop file paths.");
+      setLocalError("Use the File or Folder button, or drag files from the OS, so LocalSlack can read desktop file paths.");
       return;
     }
     setLocalError(undefined);

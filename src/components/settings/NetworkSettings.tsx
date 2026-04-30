@@ -19,7 +19,7 @@ export function NetworkSettings({ settings, onChange }: { settings: AppSettings;
             <Globe size={16} className="text-accent" />
             Server Port
           </p>
-          <p className="text-xs text-text-muted">The internal port SwiftShare uses to communicate.</p>
+          <p className="text-xs text-text-muted">The internal port LocalSlack uses to communicate.</p>
         </div>
         <div className="flex-1 max-w-[120px]">
           <input 

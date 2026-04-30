@@ -73,6 +73,29 @@ export function GeneralSettings({ settings, onChange }: { settings: AppSettings;
         </div>
       </div>
 
+      {/* Retention Section */}
+      <div className="flex items-start justify-between gap-8">
+        <div className="space-y-1">
+          <p className="font-bold text-text-primary">Channel Retention</p>
+          <p className="text-xs text-text-muted max-w-[220px]">Auto-remove old channel messages and saved assets.</p>
+        </div>
+        <div className="flex-1 max-w-sm">
+          <div className="flex items-center gap-3">
+            <input
+              type="range"
+              min={1}
+              max={24}
+              value={settings.retentionMonths}
+              onChange={(e) => onChange({ retentionMonths: Number(e.target.value) })}
+              className="w-full accent-[rgb(var(--accent))]"
+            />
+            <span className="w-20 text-right text-sm font-semibold text-text-primary">
+              {settings.retentionMonths} mo
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* Language Section */}
       <div className="flex items-start justify-between gap-8">
         <div className="space-y-1">

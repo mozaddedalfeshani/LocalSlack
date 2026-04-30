@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "swiftshare",
+      "name": "localslack",
       "dependencies": {
         "@tauri-apps/api": "^2.0.0",
         "@tauri-apps/cli": "^2.0.0",

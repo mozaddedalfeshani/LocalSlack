@@ -2,7 +2,7 @@ import { create } from "zustand";
 import type { AppSettings } from "../types";
 
 export const defaultSettings: AppSettings = {
-  deviceName: "SwiftShare Device",
+  deviceName: "LocalSlack Device",
   deviceEmoji: "🚀",
   deviceId: "",
   savePath: "",
@@ -18,7 +18,8 @@ export const defaultSettings: AppSettings = {
   compactMode: false,
   startMinimized: false,
   allowedIps: [],
-  blockedIps: []
+  blockedIps: [],
+  retentionMonths: 5
 };
 
 interface SettingsStore {

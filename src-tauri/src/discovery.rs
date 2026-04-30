@@ -16,7 +16,7 @@ use std::{
 use tauri::{AppHandle, Emitter};
 use tokio::{sync::RwLock, task::JoinHandle};
 
-const SERVICE_TYPE: &str = "_swiftshare._tcp.local.";
+const SERVICE_TYPE: &str = "_localslack._tcp.local.";
 
 #[derive(Clone)]
 pub struct DiscoveryState {
@@ -245,7 +245,7 @@ impl DiscoveryState {
 
     fn service_info(&self, settings: AppSettings, port: u16) -> Result<ServiceInfo> {
         let host = format!("{}.local.", self.local_device_id);
-        let service_name = format!("SwiftShare {}", settings.device_name);
+        let service_name = format!("LocalSlack {}", settings.device_name);
         let mut ips = local_ips();
         if ips.is_empty() {
             ips.push("127.0.0.1".to_string());

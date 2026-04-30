@@ -42,7 +42,7 @@ export function ReceiveHome({ deviceName, emoji, status, quickSaveMode, onQuickS
         >
           <img
             src={logo}
-            alt="SwiftShare"
+            alt="LocalSlack"
             className={`h-28 w-28 rounded-full object-cover shadow-2xl transition-transform ${
               spinning ? "animate-spin-slow" : ""
             }`}
@@ -57,7 +57,7 @@ export function ReceiveHome({ deviceName, emoji, status, quickSaveMode, onQuickS
 
         <div>
           <p className="text-[2.8rem] font-bold leading-tight text-text-primary">
-            {deviceName || "SwiftShare"}
+            {deviceName || "LocalSlack"}
           </p>
           {localIp && (
             <p className="mt-1 text-2xl text-text-muted">#{localIp}</p>

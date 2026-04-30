@@ -3,10 +3,10 @@
 <plist version="1.0">
 <dict>
   <key>NSLocalNetworkUsageDescription</key>
-  <string>SwiftShare uses the local network to find nearby devices and transfer files.</string>
+  <string>LocalSlack uses the local network to find nearby devices and transfer files.</string>
   <key>NSBonjourServices</key>
   <array>
-    <string>_swiftshare._tcp</string>
+    <string>_localslack._tcp</string>
   </array>
 </dict>
 </plist>

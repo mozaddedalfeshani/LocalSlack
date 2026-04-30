@@ -2,12 +2,16 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useState } from "react";
 import type { ClipboardPayload, DeviceInfo } from "../types";
+import { decodeChannelText } from "../utils/channelPayload";
 
 export function useClipboard() {
   const [received, setReceived] = useState<ClipboardPayload>();
   const [error, setError] = useState<string>();
   useEffect(() => {
-    const unlisten = listen<ClipboardPayload>("clipboard-received", (event) => setReceived(event.payload));
+    const unlisten = listen<ClipboardPayload>("clipboard-received", (event) => {
+      if (decodeChannelText(event.payload.text)) return;
+      setReceived(event.payload);
+    });
     return () => {
       unlisten.then((fn) => fn()).catch(() => undefined);
     };

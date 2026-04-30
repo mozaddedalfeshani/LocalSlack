@@ -1,11 +1,11 @@
 [package]
-name = "swiftshare"
+name = "localslack"
 version = "0.1.0"
 description = "Local WiFi file sharing desktop app"
 edition = "2021"
 
 [lib]
-name = "swiftshare_lib"
+name = "localslack_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

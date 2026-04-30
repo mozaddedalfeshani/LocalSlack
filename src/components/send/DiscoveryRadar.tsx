@@ -216,7 +216,7 @@ export function DiscoveryRadar({
           <>
             <div className="group relative h-32 w-32 cursor-pointer transition-transform hover:scale-110" onClick={onPickFiles}>
               <div className="absolute inset-0 rounded-full bg-accent/20 blur-2xl transition-opacity group-hover:opacity-40" />
-              <img src={logo} alt="SwiftShare" className="relative h-full w-full rounded-full object-cover shadow-2xl" />
+              <img src={logo} alt="LocalSlack" className="relative h-full w-full rounded-full object-cover shadow-2xl" />
             </div>
             <div className="space-y-1 text-center">
               <h3 className="text-xl font-bold text-text-primary">Discovery Mode</h3>

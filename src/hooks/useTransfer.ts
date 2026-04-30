@@ -3,7 +3,9 @@ import { listen } from "@tauri-apps/api/event";
 import { useEffect } from "react";
 import { useTransferStore } from "../store/transferStore";
 import { useUiStore } from "../store/uiStore";
+import type { ChannelId } from "../data/channels";
 import type { DeviceInfo, IncomingTransferRequest, ReceivingTransfer, TransferProgress, TransferStarted } from "../types";
+import { encodeChannelText } from "../utils/channelPayload";
 import { pickDesktopFiles } from "../utils/fileUtils";
 import { showIncomingAttention } from "../utils/windowAttention";
 
@@ -97,6 +99,74 @@ export function useTransfer() {
     }
   };
 
+  const sendToDevices = async (targets: DeviceInfo[], label: string, channelId?: ChannelId, assetIds?: string[]) => {
+    store.setError(undefined);
+    store.clearProgress();
+    const paths = store.files.map((item) => item.path).filter(Boolean) as string[];
+    if (paths.length !== store.files.length) {
+      store.setError("Some files have no OS path. Use the File / Folder picker or drag from your File Manager.");
+      return;
+    }
+    if (targets.length === 0) {
+      store.setError("No channel members are online. Ask teammates to open LocalSlack on the same Wi-Fi.");
+      return;
+    }
+
+    const channelTarget: DeviceInfo = {
+      id: `channel:${label.toLowerCase().replace(/\s+/g, "-")}`,
+      name: label,
+      emoji: "#",
+      ip: "channel",
+      port: 0,
+      deviceType: "Desktop",
+      isFavorite: false,
+      lastSeen: Math.floor(Date.now() / 1000),
+    };
+
+    try {
+      store.setTransferComplete(false);
+      store.setOutgoing({ target: channelTarget, files: [...store.files] });
+      const results = await Promise.allSettled(
+        targets.map((target) => invoke("send_files", { target, filePaths: paths, channelId, assetIds }))
+      );
+      const failed = results.filter((result) => result.status === "rejected");
+      if (failed.length > 0) {
+        store.setError(`${failed.length} of ${targets.length} channel deliveries failed.`);
+      }
+      if (failed.length === targets.length) {
+        store.setTransferComplete(true);
+      }
+    } catch (err) {
+      store.setError(String(err));
+      store.setTransferComplete(true);
+    }
+  };
+
+  const sendTextToDevices = async (targets: DeviceInfo[], channelId: ChannelId, text: string, sender: DeviceInfo) => {
+    store.setError(undefined);
+    if (targets.length === 0) {
+      store.setError("No channel members are online. Ask teammates to open LocalSlack on the same Wi-Fi.");
+      return;
+    }
+    const payload = encodeChannelText({
+      channelId,
+      text,
+      sender: {
+        id: sender.id,
+        name: sender.name,
+        emoji: sender.emoji,
+      },
+      timestamp: Math.floor(Date.now() / 1000),
+    });
+    const results = await Promise.allSettled(
+      targets.map((target) => invoke("send_clipboard_text", { target, text: payload }))
+    );
+    const failed = results.filter((result) => result.status === "rejected");
+    if (failed.length > 0) {
+      store.setError(`${failed.length} of ${targets.length} channel messages failed.`);
+    }
+  };
+
   const pick = async (kind: "files" | "folder") => {
     store.setError(undefined);
     try {
@@ -128,5 +198,5 @@ export function useTransfer() {
     store.setTransferComplete(false);
   };
 
-  return { ...store, send, cancel, pick, acceptIncoming, rejectIncoming, dismissReceiving, clearProgress: store.clearProgress };
+  return { ...store, send, sendToDevices, sendTextToDevices, cancel, pick, acceptIncoming, rejectIncoming, dismissReceiving, clearProgress: store.clearProgress };
 }

@@ -1,13 +1,16 @@
 import { create } from "zustand";
+import type { ChannelId } from "../data/channels";
 
-type MainView = "receive" | "send" | "clipboard" | "history" | "settings";
+type MainView = "channel" | "receive" | "send" | "clipboard" | "history" | "settings";
 
 interface UiStore {
   view: MainView;
+  activeChannelId: ChannelId;
   settingsOpen: boolean;
   clipboardOpen: boolean;
   toast?: string;
   setView: (view: MainView) => void;
+  setChannel: (channelId: ChannelId) => void;
   setSettingsOpen: (open: boolean) => void;
   setClipboardOpen: (open: boolean) => void;
   showToast: (message: string) => void;
@@ -15,10 +18,12 @@ interface UiStore {
 }
 
 export const useUiStore = create<UiStore>((set) => ({
-  view: "receive",
+  view: "channel",
+  activeChannelId: "general",
   settingsOpen: false,
   clipboardOpen: false,
   setView: (view) => set({ view }),
+  setChannel: (activeChannelId) => set({ activeChannelId, view: "channel" }),
   setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
   setClipboardOpen: (clipboardOpen) => set({ clipboardOpen }),
   showToast: (toast) => {

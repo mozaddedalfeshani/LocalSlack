@@ -1,11 +1,12 @@
 use crate::{
     clipboard,
+    channels::ChannelStore,
     favorites::FavoritesStore,
     history::HistoryStore,
     models::{
-        now_unix, ClipboardPayload, DeviceInfo, FileMetadata, HistoryEntry,
-        IncomingTransferRequest, PrepareUploadRequest, PrepareUploadResponse, TransferDirection,
-        TransferProgress, TransferStatus,
+        now_unix, ChannelEvent, ChannelEventKind, ChannelEventsResponse, ClipboardPayload,
+        DeviceInfo, FileMetadata, HistoryEntry, IncomingTransferRequest, PrepareUploadRequest,
+        PrepareUploadResponse, TransferDirection, TransferProgress, TransferStatus,
     },
     settings::SettingsStore,
 };
@@ -39,9 +40,11 @@ pub struct ServerState {
     pub device: DeviceInfo,
     pub settings: SettingsStore,
     pub history: HistoryStore,
+    pub channels: ChannelStore,
     pub favorites: FavoritesStore,
     pub sessions: Arc<RwLock<HashMap<String, Vec<FileMetadata>>>>,
     pub sessions_senders: Arc<RwLock<HashMap<String, DeviceInfo>>>,
+    pub sessions_channels: Arc<RwLock<HashMap<String, String>>>,
     pub sessions_completed: Arc<RwLock<HashMap<String, HashSet<String>>>>,
     pub pending_incoming: Arc<RwLock<HashMap<String, IncomingTransferRequest>>>,
     pub accepted_sessions: Arc<RwLock<HashMap<String, bool>>>,
@@ -54,7 +57,7 @@ pub async fn start_server(mut state: ServerState) -> Result<(tokio::task::JoinHa
         tracing::warn!(
             requested_port,
             port,
-            "SwiftShare receiver port was busy; using fallback port"
+            "LocalSlack receiver port was busy; using fallback port"
         );
     }
     state.device.port = port;
@@ -63,12 +66,14 @@ pub async fn start_server(mut state: ServerState) -> Result<(tokio::task::JoinHa
         .route("/api/v1/prepare-upload", post(prepare_upload))
         .route("/api/v1/upload/:session_id/:file_id", post(upload))
         .route("/api/v1/clipboard", post(clipboard_endpoint))
+        .route("/api/v1/channel/events", get(channel_events).post(save_channel_events))
+        .route("/api/v1/channel/assets/:asset_id", get(channel_asset))
         .route("/api/v1/cancel/:session_id", delete(cancel))
         .layer(CorsLayer::permissive())
         .with_state(state);
     let handle = tokio::spawn(async move {
         if let Err(error) = axum::serve(listener, app).await {
-            tracing::error!(%error, "SwiftShare server stopped");
+            tracing::error!(%error, "LocalSlack server stopped");
         }
     });
     Ok((handle, port))
@@ -83,22 +88,60 @@ async fn bind_server_port(requested_port: u16) -> Result<(tokio::net::TcpListene
         match tokio::net::TcpListener::bind(addr).await {
             Ok(listener) => return Ok((listener, port)),
             Err(error) if error.kind() == ErrorKind::AddrInUse => continue,
-            Err(error) => return Err(error).context("failed to bind SwiftShare server port"),
+            Err(error) => return Err(error).context("failed to bind LocalSlack server port"),
         }
     }
 
     let listener = tokio::net::TcpListener::bind(SocketAddr::from(([0, 0, 0, 0], 0)))
         .await
-        .context("failed to bind SwiftShare fallback server port")?;
+        .context("failed to bind LocalSlack fallback server port")?;
     let port = listener
         .local_addr()
-        .context("failed to read SwiftShare fallback server port")?
+        .context("failed to read LocalSlack fallback server port")?
         .port();
     Ok((listener, port))
 }
 
 async fn info(State(state): State<ServerState>) -> Json<DeviceInfo> {
     Json(state.device)
+}
+
+async fn channel_events(State(state): State<ServerState>) -> Json<ChannelEventsResponse> {
+    Json(ChannelEventsResponse {
+        events: state.channels.events().unwrap_or_default(),
+    })
+}
+
+async fn save_channel_events(
+    State(state): State<ServerState>,
+    Json(payload): Json<ChannelEventsResponse>,
+) -> impl IntoResponse {
+    match state.channels.save_remote_events(payload.events) {
+        Ok(()) => StatusCode::ACCEPTED.into_response(),
+        Err(error) => (StatusCode::BAD_REQUEST, error.to_string()).into_response(),
+    }
+}
+
+async fn channel_asset(
+    State(state): State<ServerState>,
+    Path(asset_id): Path<String>,
+) -> impl IntoResponse {
+    let event = state
+        .channels
+        .events()
+        .unwrap_or_default()
+        .into_iter()
+        .find(|event| event.asset_id.as_deref() == Some(asset_id.as_str()) && event.deleted_at.is_none());
+    let Some(event) = event else {
+        return StatusCode::NOT_FOUND.into_response();
+    };
+    let Some(path) = event.file_path else {
+        return StatusCode::NOT_FOUND.into_response();
+    };
+    match fs::read(PathBuf::from(path)).await {
+        Ok(bytes) => bytes.into_response(),
+        Err(error) => (StatusCode::NOT_FOUND, error.to_string()).into_response(),
+    }
 }
 
 async fn prepare_upload(
@@ -108,6 +151,7 @@ async fn prepare_upload(
     let session_id = Uuid::new_v4().to_string();
     let sender = request.sender;
     let files = request.files;
+    let channel_id = request.channel_id;
     state
         .sessions
         .write()
@@ -119,6 +163,13 @@ async fn prepare_upload(
         .write()
         .await
         .insert(session_id.clone(), sender.clone());
+    if let Some(channel_id) = channel_id.clone() {
+        state
+            .sessions_channels
+            .write()
+            .await
+            .insert(session_id.clone(), channel_id);
+    }
     let settings = state.settings.get().await;
     let mut accepted = settings.quick_save || settings.quick_save_mode == "on";
     // Favorites mode: auto-accept only if sender is in favorites
@@ -129,6 +180,7 @@ async fn prepare_upload(
         session_id: session_id.clone(),
         sender: sender.clone(),
         files: files.clone(),
+        channel_id,
     };
     if !accepted {
         state
@@ -144,6 +196,7 @@ async fn prepare_upload(
     if !accepted {
         state.sessions.write().await.remove(&session_id);
         state.sessions_senders.write().await.remove(&session_id);
+        state.sessions_channels.write().await.remove(&session_id);
     } else {
         present_receive_window(&state.app, "receiving-started");
         emit_receive_event(&state.app, "receiving-started", incoming);
@@ -158,25 +211,25 @@ async fn prepare_upload(
 fn present_receive_window(app: &AppHandle, reason: &str) {
     #[cfg(target_os = "macos")]
     if let Err(error) = app.show() {
-        tracing::warn!(%error, %reason, "failed to show SwiftShare app");
+        tracing::warn!(%error, %reason, "failed to show LocalSlack app");
     }
 
     let Some(window) = app.get_webview_window("main") else {
-        tracing::warn!(%reason, "SwiftShare main window was not available for receive request");
+        tracing::warn!(%reason, "LocalSlack main window was not available for receive request");
         return;
     };
 
     if let Err(error) = window.show() {
-        tracing::warn!(%error, %reason, "failed to show SwiftShare main window");
+        tracing::warn!(%error, %reason, "failed to show LocalSlack main window");
     }
     if let Err(error) = window.unminimize() {
-        tracing::warn!(%error, %reason, "failed to unminimize SwiftShare main window");
+        tracing::warn!(%error, %reason, "failed to unminimize LocalSlack main window");
     }
     if let Err(error) = window.request_user_attention(Some(UserAttentionType::Critical)) {
         tracing::warn!(%error, %reason, "failed to request user attention for receive request");
     }
     if let Err(error) = window.set_focus() {
-        tracing::warn!(%error, %reason, "failed to focus SwiftShare main window");
+        tracing::warn!(%error, %reason, "failed to focus LocalSlack main window");
     }
 }
 
@@ -241,10 +294,11 @@ async fn save_upload(
             sha256: String::new(),
         });
     let settings = state.settings.get().await;
-    fs::create_dir_all(&settings.save_path)
+    let save_dir = channel_save_dir(&settings.save_path, state.sessions_channels.read().await.get(&session_id));
+    fs::create_dir_all(&save_dir)
         .await
         .context("failed to create save path")?;
-    let output_path = unique_path(PathBuf::from(&settings.save_path), &file_meta.name).await;
+    let output_path = unique_path(save_dir, &file_meta.name).await;
     let mut output = fs::File::create(&output_path)
         .await
         .context("failed to create output file")?;
@@ -303,6 +357,37 @@ async fn save_upload(
         status: TransferStatus::Completed,
     };
     state.history.save_history_entry(entry)?;
+    if let Some(channel_id) = state.sessions_channels.read().await.get(&session_id).cloned() {
+        let sender = state
+            .sessions_senders
+            .read()
+            .await
+            .get(&session_id)
+            .cloned();
+        let now = now_unix();
+        let event = ChannelEvent {
+            id: file_id.clone(),
+            channel_id,
+            kind: ChannelEventKind::Asset,
+            author_id: sender.as_ref().map(|device| device.id.clone()).unwrap_or_default(),
+            author_name: sender
+                .as_ref()
+                .map(|device| device.name.clone())
+                .unwrap_or_else(|| "Unknown".to_string()),
+            author_emoji: sender.as_ref().map(|device| device.emoji.clone()).unwrap_or_default(),
+            author_ip: sender.as_ref().map(|device| device.ip.clone()).unwrap_or_default(),
+            text: None,
+            asset_id: Some(file_id.clone()),
+            file_name: Some(file_meta.name.clone()),
+            file_size: Some(written),
+            file_path: Some(output_path.to_string_lossy().to_string()),
+            available_count: 1,
+            created_at: now,
+            updated_at: now,
+            deleted_at: None,
+        };
+        state.channels.save_event(event)?;
+    }
     let session_complete = {
         let mut completed_sessions = state.sessions_completed.write().await;
         let completed_files = completed_sessions
@@ -320,12 +405,29 @@ async fn save_upload(
     if session_complete {
         state.sessions.write().await.remove(&session_id);
         state.sessions_senders.write().await.remove(&session_id);
+        state.sessions_channels.write().await.remove(&session_id);
         state.app.emit("transfer-complete", session_id.clone())?;
     }
     if settings.auto_open {
         let _ = open::that(&output_path);
     }
     Ok(())
+}
+
+fn channel_save_dir(save_path: &str, channel_id: Option<&String>) -> PathBuf {
+    let base = PathBuf::from(save_path);
+    let Some(channel_id) = channel_id else {
+        return base;
+    };
+    let safe_channel = channel_id
+        .chars()
+        .filter(|ch| ch.is_ascii_alphanumeric() || *ch == '-' || *ch == '_')
+        .collect::<String>();
+    if safe_channel.is_empty() {
+        base
+    } else {
+        base.join(safe_channel)
+    }
 }
 
 async fn unique_path(dir: PathBuf, file_name: &str) -> PathBuf {

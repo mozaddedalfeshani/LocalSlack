@@ -36,7 +36,7 @@ export function StartupNetworkDialog({ open, status, loading, error, onRefresh, 
             </span>
             <div>
               <h2 className="text-lg font-semibold text-text-primary">Network Status</h2>
-              <p className="text-sm text-text-muted">{status?.deviceName ?? "SwiftShare"}</p>
+              <p className="text-sm text-text-muted">{status?.deviceName ?? "LocalSlack"}</p>
             </div>
           </div>
           <button type="button" className="icon-button" onClick={onClose} aria-label="Close network status">
@@ -73,7 +73,7 @@ export function StartupNetworkDialog({ open, status, loading, error, onRefresh, 
               </div>
               <div className="flex justify-between gap-4">
                 <dt className="text-text-muted">Service</dt>
-                <dd>{status?.serviceType ?? "_swiftshare._tcp.local."}</dd>
+                <dd>{status?.serviceType ?? "_localslack._tcp.local."}</dd>
               </div>
             </dl>
           </div>

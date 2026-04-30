@@ -80,8 +80,8 @@ fn test_service_info_maps_to_device() {
     props.insert("emoji".to_string(), "⭐".to_string());
     props.insert("device_type".to_string(), "Desktop".to_string());
     let service = ServiceInfo::new(
-        "_swiftshare._tcp.local.",
-        "SwiftShare Linux Laptop",
+        "_localslack._tcp.local.",
+        "LocalSlack Linux Laptop",
         "peer.local.",
         "192.168.1.20",
         53317,
