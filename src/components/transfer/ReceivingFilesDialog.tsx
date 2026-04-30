@@ -33,7 +33,7 @@ export function ReceivingFilesDialog({
           <p className="truncate text-sm text-text-muted">From {transfer.sender.name}</p>
         </div>
         {done ? (
-          <button className="primary-button bg-success text-[#10251d] hover:bg-success/90" onClick={onDone}>
+          <button className="primary-button bg-success text-white hover:bg-success/90" onClick={onDone}>
             <CheckCircle2 size={18} />
             Done
           </button>
