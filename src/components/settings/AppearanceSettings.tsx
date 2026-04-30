@@ -9,17 +9,16 @@ export function AppearanceSettings({ settings, onChange }: { settings: AppSettin
       <div className="flex items-start justify-between gap-8">
         <div className="space-y-1">
           <p className="font-bold text-text-primary">Interface Theme</p>
-          <p className="text-xs text-text-muted">Choose between light, dark, or follow system.</p>
+          <p className="text-xs text-text-muted">Keep the cute LocalSlack light look everywhere.</p>
         </div>
         <div className="flex-1 max-w-sm">
           <select 
-            className="h-10 w-full rounded-xl border border-border/40 bg-bg-surface px-4 text-sm text-text-primary outline-none focus:border-accent/60 appearance-none" 
+            className="h-10 w-full appearance-none rounded-lg border border-border/60 bg-bg-surface px-4 text-sm text-text-primary outline-none shadow-sm focus:border-accent/60" 
             value={settings.theme} 
             onChange={(e) => onChange({ theme: e.target.value as AppSettings["theme"] })}
           >
-            <option value="dark">Deep Night (Dark)</option>
-            <option value="light">Pure Snow (Light)</option>
-            <option value="system">Auto System Sync</option>
+            <option value="light">LocalSlack Light</option>
+            <option value="system">Follow System, keep light app</option>
           </select>
         </div>
       </div>
@@ -32,7 +31,7 @@ export function AppearanceSettings({ settings, onChange }: { settings: AppSettin
         </div>
         <div className="flex-1 max-w-sm">
           <select 
-            className="h-10 w-full rounded-xl border border-border/40 bg-bg-surface px-4 text-sm text-text-primary outline-none focus:border-accent/60 appearance-none" 
+            className="h-10 w-full appearance-none rounded-lg border border-border/60 bg-bg-surface px-4 text-sm text-text-primary outline-none shadow-sm focus:border-accent/60" 
             value={settings.fontSize} 
             onChange={(e) => onChange({ fontSize: e.target.value as AppSettings["fontSize"] })}
           >
@@ -56,7 +55,7 @@ export function AppearanceSettings({ settings, onChange }: { settings: AppSettin
               type="button" 
               title={accent} 
               onClick={() => onChange({ accentColor: accent })} 
-              className={`h-10 w-10 rounded-2xl border-2 transition-all hover:scale-110 ${
+              className={`h-10 w-10 rounded-lg border-2 transition-all hover:scale-110 ${
                 settings.accentColor === accent 
                   ? "border-text-primary scale-125 shadow-lg shadow-accent/10" 
                   : "border-border/20 bg-bg-surface"
