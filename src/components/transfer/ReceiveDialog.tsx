@@ -42,7 +42,7 @@ export function ReceiveDialog({ sender, files, onAccept, onReject }: { sender?: 
             <X size={18} />
             {t("transfer.reject")}
           </button>
-          <button className="primary-button bg-success text-[#10251d] hover:bg-success/90" onClick={onAccept}>
+          <button className="primary-button bg-success text-white hover:bg-success/90" onClick={onAccept}>
             <CheckCircle2 size={18} />
             {t("transfer.accept")}
           </button>
