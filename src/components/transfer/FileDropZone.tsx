@@ -75,12 +75,12 @@ export function FileDropZone({ files, selectedDevice, error, onFiles, onPickFile
           addBrowserFiles(event.dataTransfer.files);
         }}
         className={`flex min-h-48 w-full flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 transition ${
-          dragging ? "border-[#80d8ca] bg-[#1c3730]" : "border-[#315048] bg-[#10201b] hover:border-[#80d8ca]"
+          dragging ? "border-accent bg-accent/10" : "border-border bg-bg-surface hover:border-accent/70 hover:bg-bg-elevated"
         }`}
       >
-        <UploadCloud size={44} strokeWidth={2.8} className="mb-4 text-[#83d8cb]" />
-        <span className="text-base font-semibold text-[#e4efeb]">{t("transfer.dropFiles")}</span>
-        <span className="mt-1 text-sm text-[#91a39d]">{t("transfer.browseFiles")}</span>
+        <UploadCloud size={44} strokeWidth={2.8} className="mb-4 text-accent" />
+        <span className="text-base font-semibold text-text-primary">{t("transfer.dropFiles")}</span>
+        <span className="mt-1 text-sm text-text-muted">{t("transfer.browseFiles")}</span>
         <input ref={inputRef} type="file" multiple className="hidden" onChange={(event) => event.target.files && addBrowserFiles(event.target.files)} />
       </button>
       <div className="flex items-center justify-between gap-3">
