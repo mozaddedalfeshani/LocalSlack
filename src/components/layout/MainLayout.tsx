@@ -24,9 +24,9 @@ interface Props {
 
 export function MainLayout(props: Props) {
   return (
-    <div className="flex h-screen overflow-hidden bg-bg-primary text-text-primary">
+    <div className="app-shell flex h-screen overflow-hidden text-text-primary">
       <Sidebar {...props} />
-      <main className="min-w-0 flex-1 overflow-hidden bg-bg-primary">{props.children}</main>
+      <main className="min-w-0 flex-1 overflow-hidden bg-bg-primary/75">{props.children}</main>
     </div>
   );
 }
