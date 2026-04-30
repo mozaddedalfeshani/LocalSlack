@@ -1,0 +1,249 @@
+{
+  "info": {
+    "_postman_id": "c6a5a2af-4bb6-4b2b-8d07-6e4a7b8b2c11",
+    "name": "LocalSlack API",
+    "description": "Postman collection for the LocalSlack embedded HTTP server. Organized by feature area for LAN peer-to-peer testing.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Discovery",
+      "item": [
+        {
+          "name": "Get Local Device Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/info",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "info"
+              ]
+            },
+            "description": "Returns the current device info advertised by the running LocalSlack instance."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transfers",
+      "item": [
+        {
+          "name": "Prepare Upload",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sender\": {\n    \"id\": \"device-1\",\n    \"name\": \"Murad Laptop\",\n    \"emoji\": \"🚀\",\n    \"ip\": \"192.168.1.20\",\n    \"port\": 53317,\n    \"deviceType\": \"desktop\",\n    \"isFavorite\": false,\n    \"lastSeen\": 1714495200\n  },\n  \"files\": [\n    {\n      \"id\": \"file-1\",\n      \"name\": \"sample.pdf\",\n      \"size\": 102400,\n      \"mimeType\": \"application/pdf\",\n      \"sha256\": \"\"\n    }\n  ],\n  \"channelId\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/prepare-upload",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "prepare-upload"
+              ]
+            },
+            "description": "Negotiates a file transfer session and returns an upload session identifier together with an accept/reject decision."
+          }
+        },
+        {
+          "name": "Upload File Chunk Stream",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/octet-stream"
+              }
+            ],
+            "body": {
+              "mode": "file",
+              "file": {
+                "src": ""
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/upload/{{sessionId}}/{{fileId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "upload",
+                "{{sessionId}}",
+                "{{fileId}}"
+              ]
+            },
+            "description": "Streams the binary file payload for an active upload session."
+          }
+        },
+        {
+          "name": "Cancel Upload Session",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/cancel/{{sessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cancel",
+                "{{sessionId}}"
+              ]
+            },
+            "description": "Cancels an active file transfer session."
+          }
+        },
+        {
+          "name": "Get Channel Asset",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/channel/assets/{{assetId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "channel",
+                "assets",
+                "{{assetId}}"
+              ]
+            },
+            "description": "Downloads a channel asset that is available on the current peer."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Clipboard",
+      "item": [
+        {
+          "name": "Send Clipboard Payload",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Hello from LocalSlack\",\n  \"sender\": {\n    \"id\": \"device-1\",\n    \"name\": \"Murad Laptop\",\n    \"emoji\": \"🚀\",\n    \"ip\": \"192.168.1.20\",\n    \"port\": 53317,\n    \"deviceType\": \"desktop\",\n    \"isFavorite\": false,\n    \"lastSeen\": 1714495200\n  },\n  \"timestamp\": 1714495200\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/clipboard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "clipboard"
+              ]
+            },
+            "description": "Receives a clipboard text payload from a peer."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Channels",
+      "item": [
+        {
+          "name": "Get Channel Events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/channel/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "channel",
+                "events"
+              ]
+            },
+            "description": "Returns the full channel event log together with current channel metadata."
+          }
+        },
+        {
+          "name": "Sync Channel Events",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"events\": [\n    {\n      \"id\": \"event-1\",\n      \"channelId\": \"general\",\n      \"kind\": \"text\",\n      \"authorId\": \"device-1\",\n      \"authorName\": \"Murad Laptop\",\n      \"authorEmoji\": \"🚀\",\n      \"authorIp\": \"192.168.1.20\",\n      \"text\": \"Hello team\",\n      \"availableCount\": 1,\n      \"createdAt\": 1714495200,\n      \"updatedAt\": 1714495200\n    }\n  ],\n  \"slackInfo\": {\n    \"channels\": [],\n    \"updatedAt\": 1714495200\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/channel/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "channel",
+                "events"
+              ]
+            },
+            "description": "Accepts remote channel events and channel metadata, then merges them into the local store."
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:53317",
+      "type": "string"
+    },
+    {
+      "key": "sessionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "fileId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "assetId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
