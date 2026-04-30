@@ -247,12 +247,12 @@ export function DiscoveryRadar({
               }}
             >
               <div className={`grid h-16 w-16 place-items-center rounded-2xl border-2 transition-all ${
-                active ? "border-accent bg-accent/20 shadow-[0_0_20px_rgba(var(--accent),0.3)]" : "border-border/40 bg-bg-surface backdrop-blur-sm"
+                active ? "border-accent bg-accent/15 shadow-cute" : "border-border/40 bg-bg-surface backdrop-blur-sm"
               }`}>
                 <span className="text-3xl">{device.emoji || "💻"}</span>
               </div>
               <span className={`rounded-full px-2.5 py-1 text-xs font-bold transition-colors ${
-                active ? "bg-accent text-[#241014]" : "bg-bg-elevated text-text-secondary"
+                active ? "bg-accent text-white" : "bg-bg-elevated text-text-secondary"
               }`}>
                 {device.name}
               </span>
