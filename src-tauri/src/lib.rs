@@ -1,6 +1,7 @@
 pub mod clipboard;
 pub mod channels;
 pub mod discovery;
+pub mod direct_messages;
 pub mod favorites;
 pub mod history;
 pub mod models;
@@ -11,11 +12,13 @@ pub mod settings;
 use anyhow::Context;
 use channels::ChannelStore;
 use discovery::DiscoveryState;
+use direct_messages::DirectMessageStore;
 use favorites::FavoritesStore;
 use history::HistoryStore;
 use models::{
-    AppSettings, ChannelEvent, ChannelEventKind, ChannelEventsResponse, DeviceInfo, HistoryEntry,
-    IncomingTransferRequest, NetworkStatus, PathEntry, SlackInfo,
+    AppSettings, ChannelEvent, ChannelEventKind, ChannelEventsResponse, DeviceInfo,
+    DirectMessageEvent, DirectMessageKind, HistoryEntry, IncomingTransferRequest, NetworkStatus,
+    PathEntry, SlackInfo,
 };
 use sender::TransferCanceller;
 use settings::SettingsStore;
@@ -35,6 +38,7 @@ pub struct AppState {
     discovery: DiscoveryState,
     history: HistoryStore,
     channels: ChannelStore,
+    direct_messages: DirectMessageStore,
     favorites: FavoritesStore,
     canceller: TransferCanceller,
     accepted_sessions: Arc<RwLock<HashMap<String, bool>>>,
@@ -99,9 +103,130 @@ async fn send_files(
         file_paths,
         channel_id,
         asset_ids,
+        Vec::new(),
     )
         .await
         .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+async fn get_direct_messages(
+    state: State<'_, AppState>,
+    peer_id: String,
+) -> Result<Vec<DirectMessageEvent>, String> {
+    state
+        .direct_messages
+        .thread(&peer_id)
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+async fn send_direct_text(
+    state: State<'_, AppState>,
+    target: DeviceInfo,
+    text: String,
+) -> Result<DirectMessageEvent, String> {
+    let sender = state.discovery.local_device(&state.settings).await;
+    let now = models::now_unix();
+    let event = DirectMessageEvent {
+        id: Uuid::new_v4().to_string(),
+        peer_id: target.id.clone(),
+        kind: DirectMessageKind::Text,
+        author_id: sender.id.clone(),
+        author_name: sender.name.clone(),
+        author_emoji: sender.emoji.clone(),
+        recipient_id: target.id.clone(),
+        recipient_name: target.name.clone(),
+        recipient_emoji: target.emoji.clone(),
+        text: Some(text),
+        asset_id: None,
+        file_name: None,
+        file_size: None,
+        file_path: None,
+        created_at: now,
+        updated_at: now,
+        deleted_at: None,
+    };
+    state
+        .direct_messages
+        .save_event(event.clone())
+        .map_err(|error| error.to_string())?;
+    let remote_event = DirectMessageEvent {
+        peer_id: sender.id.clone(),
+        ..event.clone()
+    };
+    reqwest::Client::new()
+        .post(format!(
+            "http://{}:{}/api/v1/direct/messages",
+            target.ip, target.port
+        ))
+        .json(&remote_event)
+        .send()
+        .await
+        .map_err(|error| error.to_string())?
+        .error_for_status()
+        .map_err(|error| error.to_string())?;
+    Ok(event)
+}
+
+#[tauri::command]
+async fn send_direct_files(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    target: DeviceInfo,
+    file_paths: Vec<String>,
+) -> Result<Vec<DirectMessageEvent>, String> {
+    let sender = state.discovery.local_device(&state.settings).await;
+    let mut events = Vec::new();
+    for path in &file_paths {
+        let path_buf = PathBuf::from(path);
+        let metadata = std::fs::metadata(&path_buf).map_err(|error| error.to_string())?;
+        let file_name = path_buf
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("file")
+            .to_string();
+        let now = models::now_unix();
+        let asset_id = Uuid::new_v4().to_string();
+        events.push(DirectMessageEvent {
+            id: asset_id.clone(),
+            peer_id: target.id.clone(),
+            kind: DirectMessageKind::Asset,
+            author_id: sender.id.clone(),
+            author_name: sender.name.clone(),
+            author_emoji: sender.emoji.clone(),
+            recipient_id: target.id.clone(),
+            recipient_name: target.name.clone(),
+            recipient_emoji: target.emoji.clone(),
+            text: None,
+            asset_id: Some(asset_id),
+            file_name: Some(file_name),
+            file_size: Some(metadata.len()),
+            file_path: Some(path.clone()),
+            created_at: now,
+            updated_at: now,
+            deleted_at: None,
+        });
+    }
+    for event in events.clone() {
+        state
+            .direct_messages
+            .save_event(event)
+            .map_err(|error| error.to_string())?;
+    }
+    sender::send_files(
+        app,
+        state.canceller.clone(),
+        sender,
+        target,
+        file_paths,
+        None,
+        Some(events.iter().map(|event| event.id.clone()).collect()),
+        events.clone(),
+    )
+    .await
+    .map_err(|error| error.to_string())?;
+    Ok(events)
 }
 
 #[tauri::command]
@@ -647,6 +772,7 @@ pub fn run() {
             let db = sled::open(db_dir).context("failed to open app database")?;
             let history = HistoryStore::open(db.open_tree("history")?);
             let channels = ChannelStore::open(db.open_tree("channels")?);
+            let direct_messages = DirectMessageStore::open(db.open_tree("direct_messages")?);
             let favorites = FavoritesStore::open(db.open_tree("favorites")?);
             let discovery = DiscoveryState::new(settings.device_id.clone());
             let accepted_sessions = Arc::new(RwLock::new(HashMap::new()));
@@ -656,6 +782,7 @@ pub fn run() {
                 discovery: discovery.clone(),
                 history: history.clone(),
                 channels: channels.clone(),
+                direct_messages: direct_messages.clone(),
                 favorites: favorites.clone(),
                 canceller: TransferCanceller::default(),
                 accepted_sessions: accepted_sessions.clone(),
@@ -671,10 +798,12 @@ pub fn run() {
                     settings: settings.clone(),
                     history,
                     channels: channels.clone(),
+                    direct_messages: direct_messages.clone(),
                     favorites: favorites.clone(),
                     sessions: Arc::new(RwLock::new(HashMap::new())),
                     sessions_senders: Arc::new(RwLock::new(HashMap::new())),
                     sessions_channels: Arc::new(RwLock::new(HashMap::new())),
+                    sessions_direct_messages: Arc::new(RwLock::new(HashMap::new())),
                     sessions_completed: Arc::new(RwLock::new(HashMap::new())),
                     pending_incoming,
                     accepted_sessions,
@@ -708,6 +837,9 @@ pub fn run() {
             get_device_info,
             get_pending_incoming,
             send_files,
+            get_direct_messages,
+            send_direct_text,
+            send_direct_files,
             cancel_transfer,
             accept_transfer,
             reject_transfer,

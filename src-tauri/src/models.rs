@@ -128,6 +128,43 @@ pub enum ChannelEventKind {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
+pub enum DirectMessageKind {
+    Text,
+    Asset,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct DirectMessageEvent {
+    pub id: String,
+    pub peer_id: String,
+    pub kind: DirectMessageKind,
+    pub author_id: String,
+    pub author_name: String,
+    #[serde(default)]
+    pub author_emoji: String,
+    pub recipient_id: String,
+    pub recipient_name: String,
+    #[serde(default)]
+    pub recipient_emoji: String,
+    #[serde(default)]
+    pub text: Option<String>,
+    #[serde(default)]
+    pub asset_id: Option<String>,
+    #[serde(default)]
+    pub file_name: Option<String>,
+    #[serde(default)]
+    pub file_size: Option<u64>,
+    #[serde(default)]
+    pub file_path: Option<String>,
+    pub created_at: u64,
+    pub updated_at: u64,
+    #[serde(default)]
+    pub deleted_at: Option<u64>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct ChannelEvent {
     pub id: String,
     pub channel_id: String,
@@ -217,6 +254,8 @@ pub struct PrepareUploadRequest {
     pub files: Vec<FileMetadata>,
     #[serde(default)]
     pub channel_id: Option<String>,
+    #[serde(default)]
+    pub direct_message_events: Vec<DirectMessageEvent>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]

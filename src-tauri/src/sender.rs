@@ -1,6 +1,6 @@
 use crate::models::{
-    now_unix, DeviceInfo, FileMetadata, HistoryEntry, PrepareUploadRequest, PrepareUploadResponse,
-    TransferDirection, TransferProgress, TransferStarted, TransferStatus,
+    now_unix, DeviceInfo, DirectMessageEvent, FileMetadata, HistoryEntry, PrepareUploadRequest,
+    PrepareUploadResponse, TransferDirection, TransferProgress, TransferStarted, TransferStatus,
 };
 use anyhow::{anyhow, Context, Result};
 use futures_util::StreamExt;
@@ -71,6 +71,7 @@ pub async fn send_files(
     paths: Vec<String>,
     channel_id: Option<String>,
     asset_ids: Option<Vec<String>>,
+    direct_message_events: Vec<DirectMessageEvent>,
 ) -> Result<()> {
     let file_paths: Vec<PathBuf> = paths.into_iter().map(PathBuf::from).collect();
     let mut files = Vec::new();
@@ -97,6 +98,7 @@ pub async fn send_files(
             sender,
             files: files.clone(),
             channel_id,
+            direct_message_events,
         })
         .send()
         .await

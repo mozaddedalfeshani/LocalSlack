@@ -2,6 +2,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useState } from "react";
 import { ChannelShare } from "./components/channel/ChannelShare";
+import { DirectMessagePage } from "./components/direct/DirectMessagePage";
+import { useDirectMessages } from "./hooks/useDirectMessages";
 import { useDevices } from "./hooks/useDevices";
 import { useFavorites } from "./hooks/useFavorites";
 import { useSettings } from "./hooks/useSettings";
@@ -186,6 +188,8 @@ export default function App() {
   }, [setSlackInfo, syncChannelState]);
 
   const activeChannel = getChannel(ui.activeChannelId, channels);
+  const activeDmDevice = devices.devices.find((device) => device.id === ui.activeDmDeviceId) ?? devices.selectedDevice;
+  const directMessages = useDirectMessages(activeDmDevice);
   const currentLocalDevice: DeviceInfo = localDevice ?? {
     id: settings.settings.deviceId || "local-device",
     name: settings.settings.deviceName || "You",
@@ -268,6 +272,23 @@ export default function App() {
     });
   }, []);
 
+  const openDirectMessage = useCallback((device: DeviceInfo) => {
+    devices.selectDevice(device);
+    ui.setDirectMessage(device.id);
+  }, [devices, ui]);
+
+  const sendDirectFiles = useCallback((device: DeviceInfo) => {
+    const paths = transfer.files.map((item) => item.path).filter(Boolean) as string[];
+    if (paths.length !== transfer.files.length) {
+      transfer.setError("Some files have no OS path. Use the File / Folder picker or drag from your File Manager.");
+      return;
+    }
+    void directMessages.sendFiles(device, paths).then(() => {
+      transfer.clearFiles();
+      transfer.clearProgress();
+    });
+  }, [directMessages, transfer]);
+
   const isTransferring = transfer.outgoing != null || transfer.receiving != null || transfer.progress.length > 0;
 
   const content = ui.view === "channel" ? (
@@ -290,6 +311,26 @@ export default function App() {
       onDeleteEvent={deleteChannelEvent}
       onEditMessage={editChannelMessage}
       onDownloadAsset={downloadChannelAsset}
+      onOpenAsset={openChannelAsset}
+      onCancel={(id) => transfer.cancel(id)}
+    />
+  ) : ui.view === "dm" ? (
+    <DirectMessagePage
+      device={activeDmDevice}
+      localDevice={currentLocalDevice}
+      events={directMessages.events}
+      files={transfer.files}
+      progress={transfer.progress}
+      loading={directMessages.loading}
+      error={directMessages.error}
+      transferError={transfer.error}
+      onRefresh={directMessages.refresh}
+      onPickFiles={() => transfer.pick("files")}
+      onPickFolder={() => transfer.pick("folder")}
+      onRemoveFile={transfer.removeFile}
+      onClearFiles={transfer.clearFiles}
+      onSendText={(device, text) => void directMessages.sendText(device, text)}
+      onSendFiles={sendDirectFiles}
       onOpenAsset={openChannelAsset}
       onCancel={(id) => transfer.cancel(id)}
     />
@@ -343,8 +384,11 @@ export default function App() {
         error={devices.error}
         view={ui.view}
         activeChannelId={ui.activeChannelId}
+        activeDmDeviceId={ui.activeDmDeviceId}
         onView={ui.setView}
         onChannel={ui.setChannel}
+        onDirectMessage={openDirectMessage}
+        onRefreshDevices={devices.refresh}
         onCreateChannel={createChannel}
         onRenameChannel={renameChannel}
         onSelect={devices.selectDevice}

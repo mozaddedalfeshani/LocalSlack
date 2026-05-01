@@ -1,8 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
-import { Check, Clock3, Github, Pencil, Plus, Send, Settings, Wifi, X } from "lucide-react";
+import { Check, Clock3, Github, Pencil, Plus, RefreshCw, Settings, Star, X } from "lucide-react";
 import { useRef, useState } from "react";
 import type { ShareChannel } from "../../data/channels";
 import type { ChannelId, DeviceInfo } from "../../types";
+import type { MainView } from "../../store/uiStore";
+import { DeviceAvatar } from "../devices/DeviceAvatar";
 import logo from "../../assets/logo.png";
 
 interface Props {
@@ -13,8 +15,11 @@ interface Props {
   error?: string;
   view: string;
   activeChannelId: ChannelId;
-  onView: (view: "channel" | "receive" | "send" | "clipboard" | "history" | "settings") => void;
+  activeDmDeviceId?: string;
+  onView: (view: MainView) => void;
   onChannel: (channelId: ChannelId) => void;
+  onDirectMessage: (device: DeviceInfo) => void;
+  onRefreshDevices: () => void;
   onCreateChannel: (name: string) => void;
   onRenameChannel: (channelId: string, name: string) => void;
   onSelect: (device: DeviceInfo) => void;
@@ -56,13 +61,6 @@ export function Sidebar(props: Props) {
   const openGithubRepository = () => {
     void invoke("open_github_repository");
   };
-
-  const items = [
-    { id: "receive" as const, label: "Receive", icon: Wifi },
-    { id: "send" as const, label: "Direct Send", icon: Send },
-    { id: "history" as const, label: "History", icon: Clock3 },
-    { id: "settings" as const, label: "Settings", icon: Settings }
-  ];
 
   return (
     <aside className="flex w-[270px] shrink-0 flex-col border-r border-border/60 bg-bg-secondary/80 px-3 py-8 text-text-primary shadow-cute backdrop-blur-xl">
@@ -139,28 +137,77 @@ export function Sidebar(props: Props) {
         </nav>
       </div>
 
-      <nav className="space-y-1">
-        <p className="mb-2 px-4 text-xs font-semibold uppercase tracking-wide text-text-muted">Tools</p>
-        {items.map((item) => {
-          const Icon = item.icon;
-          const active = props.view === item.id;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              className={`rail-button ${active ? "active" : ""}`}
-              onClick={() => props.onView(item.id)}
-            >
-              <span className="rail-icon">
-                <Icon size={23} strokeWidth={2.2} />
-              </span>
-              <span>{item.label}</span>
-            </button>
-          );
-        })}
-      </nav>
+      <div className="min-h-0 flex-1">
+        <div className="mb-2 flex items-center justify-between px-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">Members</p>
+          <button
+            type="button"
+            className="grid h-7 w-7 place-items-center rounded-lg text-text-muted transition hover:bg-bg-surface hover:text-accent"
+            onClick={props.onRefreshDevices}
+            title="Refresh members"
+          >
+            <RefreshCw size={16} className={props.loading ? "animate-spin" : ""} />
+          </button>
+        </div>
+
+        {props.error && <p className="mx-4 mb-2 text-xs text-error">{props.error}</p>}
+        {props.devices.length === 0 ? (
+          <p className="px-4 text-sm text-text-muted">No online members found.</p>
+        ) : (
+          <nav className="space-y-1 overflow-y-auto pr-1">
+            {props.devices.map((device) => {
+              const active = props.view === "dm" && props.activeDmDeviceId === device.id;
+              return (
+                <div key={device.id} className={`rail-button ${active ? "active" : ""} pr-1`}>
+                  <button
+                    type="button"
+                    className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                    onClick={() => props.onDirectMessage(device)}
+                  >
+                    <DeviceAvatar device={device} />
+                    <span className="min-w-0 flex-1 truncate">{device.name}</span>
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-success" />
+                  </button>
+                  <button
+                    type="button"
+                    className="grid h-6 w-6 shrink-0 place-items-center rounded-lg text-text-muted transition hover:bg-bg-elevated hover:text-accent"
+                    aria-label={device.isFavorite ? "Remove favorite" : "Add favorite"}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      props.onToggleFavorite(device);
+                    }}
+                    title={device.isFavorite ? "Remove favorite" : "Add favorite"}
+                  >
+                    <Star size={13} fill={device.isFavorite ? "currentColor" : "none"} />
+                  </button>
+                </div>
+              );
+            })}
+          </nav>
+        )}
+      </div>
 
       <div className="mt-auto pt-6">
+        <button
+          type="button"
+          className={`rail-button ${props.view === "history" ? "active" : ""}`}
+          onClick={() => props.onView("history")}
+        >
+          <span className="rail-icon">
+            <Clock3 size={23} strokeWidth={2.2} />
+          </span>
+          <span>History</span>
+        </button>
+        <button
+          type="button"
+          className={`rail-button ${props.view === "settings" ? "active" : ""}`}
+          onClick={() => props.onView("settings")}
+        >
+          <span className="rail-icon">
+            <Settings size={23} strokeWidth={2.2} />
+          </span>
+          <span>Settings</span>
+        </button>
         <button
           type="button"
           className="rail-button"
