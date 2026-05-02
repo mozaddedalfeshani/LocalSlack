@@ -294,6 +294,9 @@ pub struct AppSettings {
     pub blocked_ips: Vec<String>,
     #[serde(default = "default_retention_months")]
     pub retention_months: u32,
+    /// Unix timestamp (seconds) set on factory reset; events created before this are ignored on sync
+    #[serde(default)]
+    pub sync_floor: u64,
 }
 
 pub fn default_retention_months() -> u32 {

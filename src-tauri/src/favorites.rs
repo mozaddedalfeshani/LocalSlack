@@ -40,4 +40,10 @@ impl FavoritesStore {
     pub fn is_favorite(&self, device_id: &str) -> Result<bool> {
         Ok(self.db.contains_key(device_id.as_bytes())?)
     }
+
+    pub fn clear(&self) -> Result<()> {
+        self.db.clear()?;
+        self.db.flush()?;
+        Ok(())
+    }
 }
