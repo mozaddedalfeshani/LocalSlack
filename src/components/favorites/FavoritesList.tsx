@@ -2,7 +2,13 @@ import { Star } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { DeviceInfo } from "../../types";
 
-export function FavoritesList({ devices, onSelect }: { devices: DeviceInfo[]; onSelect: (device: DeviceInfo) => void }) {
+export function FavoritesList({
+  devices,
+  onSelect,
+}: {
+  devices: DeviceInfo[];
+  onSelect: (device: DeviceInfo) => void;
+}) {
   const { t } = useTranslation();
   const favorites = devices.filter((device) => device.isFavorite);
   return (
