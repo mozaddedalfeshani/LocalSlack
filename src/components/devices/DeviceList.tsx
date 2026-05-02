@@ -12,11 +12,24 @@ interface Props {
   onToggleFavorite: (device: DeviceInfo) => void;
 }
 
-export function DeviceList({ devices, selected, loading, error, onSelect, onToggleFavorite }: Props) {
+export function DeviceList({
+  devices,
+  selected,
+  loading,
+  error,
+  onSelect,
+  onToggleFavorite,
+}: Props) {
   const { t } = useTranslation();
-  if (loading) return <p className="p-3 text-sm text-text-muted">{t("devices.searching")}</p>;
+  if (loading)
+    return (
+      <p className="p-3 text-sm text-text-muted">{t("devices.searching")}</p>
+    );
   if (error) return <p className="p-3 text-sm text-error">{error}</p>;
-  if (devices.length === 0) return <p className="p-3 text-sm text-text-muted">{t("devices.noDevices")}</p>;
+  if (devices.length === 0)
+    return (
+      <p className="p-3 text-sm text-text-muted">{t("devices.noDevices")}</p>
+    );
   return (
     <div className="space-y-2">
       {sortDevices(devices).map((device) => (
