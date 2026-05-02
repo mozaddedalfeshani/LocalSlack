@@ -22,7 +22,16 @@ interface DragDropPayload {
   paths?: string[];
 }
 
-export function FileDropZone({ files, selectedDevice, error, onFiles, onPickFiles, onPickFolder, onRemove, onSend }: Props) {
+export function FileDropZone({
+  files,
+  selectedDevice,
+  error,
+  onFiles,
+  onPickFiles,
+  onPickFolder,
+  onRemove,
+  onSend,
+}: Props) {
   const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -45,17 +54,21 @@ export function FileDropZone({ files, selectedDevice, error, onFiles, onPickFile
         } catch (err) {
           setLocalError(String(err));
         }
-      })
+      }),
     ];
     return () => {
-      unlisteners.forEach((unlisten) => unlisten.then((fn) => fn()).catch(() => undefined));
+      unlisteners.forEach((unlisten) =>
+        unlisten.then((fn) => fn()).catch(() => undefined),
+      );
     };
   }, [onFiles]);
 
   const addBrowserFiles = (list: FileList) => {
     const selected = filesFromList(list);
     if (selected.length === 0) {
-      setLocalError("Use the File or Folder button, or drag files from the OS, so LocalSlack can read desktop file paths.");
+      setLocalError(
+        "Use the File or Folder button, or drag files from the OS, so LocalSlack can read desktop file paths.",
+      );
       return;
     }
     setLocalError(undefined);
@@ -67,7 +80,10 @@ export function FileDropZone({ files, selectedDevice, error, onFiles, onPickFile
       <button
         type="button"
         onClick={onPickFiles ?? (() => inputRef.current?.click())}
-        onDragOver={(event) => { event.preventDefault(); setDragging(true); }}
+        onDragOver={(event) => {
+          event.preventDefault();
+          setDragging(true);
+        }}
         onDragLeave={() => setDragging(false)}
         onDrop={(event) => {
           event.preventDefault();
@@ -75,28 +91,59 @@ export function FileDropZone({ files, selectedDevice, error, onFiles, onPickFile
           addBrowserFiles(event.dataTransfer.files);
         }}
         className={`flex min-h-48 w-full flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 transition ${
-          dragging ? "border-accent bg-accent/10" : "border-border bg-bg-surface hover:border-accent/70 hover:bg-bg-elevated"
+          dragging
+            ? "border-accent bg-accent/10"
+            : "border-border bg-bg-surface hover:border-accent/70 hover:bg-bg-elevated"
         }`}
       >
         <UploadCloud size={44} strokeWidth={2.8} className="mb-4 text-accent" />
-        <span className="text-base font-semibold text-text-primary">{t("transfer.dropFiles")}</span>
-        <span className="mt-1 text-sm text-text-muted">{t("transfer.browseFiles")}</span>
-        <input ref={inputRef} type="file" multiple className="hidden" onChange={(event) => event.target.files && addBrowserFiles(event.target.files)} />
+        <span className="text-base font-semibold text-text-primary">
+          {t("transfer.dropFiles")}
+        </span>
+        <span className="mt-1 text-sm text-text-muted">
+          {t("transfer.browseFiles")}
+        </span>
+        <input
+          ref={inputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={(event) =>
+            event.target.files && addBrowserFiles(event.target.files)
+          }
+        />
       </button>
       <div className="flex items-center justify-between gap-3">
         <div className="flex gap-2">
-          <button type="button" className="secondary-button" onClick={onPickFiles}>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={onPickFiles}
+          >
             File
           </button>
-          <button type="button" className="secondary-button" onClick={onPickFolder}>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={onPickFolder}
+          >
             Folder
           </button>
         </div>
-        <button type="button" className="primary-button" disabled={!canSend} onClick={onSend}>
+        <button
+          type="button"
+          className="primary-button"
+          disabled={!canSend}
+          onClick={onSend}
+        >
           {selectedDevice ? "Send" : "Select a device"}
         </button>
       </div>
-      {(error || localError) && <p className="rounded-md border border-error/30 bg-error/10 p-3 text-sm text-error">{error || localError}</p>}
+      {(error || localError) && (
+        <p className="rounded-md border border-error/30 bg-error/10 p-3 text-sm text-error">
+          {error || localError}
+        </p>
+      )}
       <ImagePreview files={files} />
       <FilePreview files={files} onRemove={onRemove} />
     </section>
