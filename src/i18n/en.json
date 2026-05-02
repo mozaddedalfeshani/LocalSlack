@@ -1,6 +1,11 @@
 {
   "app": { "name": "LocalSlack" },
-  "devices": { "title": "Devices", "noDevices": "No devices found", "searching": "Searching...", "favorites": "Favorites" },
+  "devices": {
+    "title": "Devices",
+    "noDevices": "No devices found",
+    "searching": "Searching...",
+    "favorites": "Favorites"
+  },
   "transfer": {
     "dropFiles": "Drop files or folders here",
     "browseFiles": "or click to browse",
