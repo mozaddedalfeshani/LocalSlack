@@ -1,5 +1,11 @@
 import { create } from "zustand";
-import type { IncomingTransferRequest, OutgoingTransfer, ReceivingTransfer, SelectedFile, TransferProgress } from "../types";
+import type {
+  IncomingTransferRequest,
+  OutgoingTransfer,
+  ReceivingTransfer,
+  SelectedFile,
+  TransferProgress,
+} from "../types";
 
 interface TransferStore {
   files: SelectedFile[];
@@ -32,7 +38,8 @@ export const useTransferStore = create<TransferStore>((set) => ({
   backgroundTransfer: false,
   transferComplete: false,
   addFiles: (files) => set((state) => ({ files: [...state.files, ...files] })),
-  removeFile: (id) => set((state) => ({ files: state.files.filter((item) => item.id !== id) })),
+  removeFile: (id) =>
+    set((state) => ({ files: state.files.filter((item) => item.id !== id) })),
   clearFiles: () => set({ files: [] }),
   clearProgress: () => set({ progress: [] }),
   setProgress: (incoming) =>
@@ -40,9 +47,13 @@ export const useTransferStore = create<TransferStore>((set) => ({
       progress: state.backgroundTransfer
         ? state.progress
         : [
-            ...state.progress.filter((item) => item.sessionId !== incoming.sessionId || item.fileId !== incoming.fileId),
-            incoming
-          ]
+            ...state.progress.filter(
+              (item) =>
+                item.sessionId !== incoming.sessionId ||
+                item.fileId !== incoming.fileId,
+            ),
+            incoming,
+          ],
     })),
   setIncoming: (incoming) => set({ incoming }),
   setReceiving: (receiving) => set({ receiving }),
@@ -50,9 +61,9 @@ export const useTransferStore = create<TransferStore>((set) => ({
   setBackgroundTransfer: (backgroundTransfer) => set({ backgroundTransfer }),
   setOutgoingSessionId: (sessionId) =>
     set((state) =>
-      state.outgoing ? { outgoing: { ...state.outgoing, sessionId } } : state
+      state.outgoing ? { outgoing: { ...state.outgoing, sessionId } } : state,
     ),
   setTransferComplete: (transferComplete) => set({ transferComplete }),
   setError: (error) => set({ error }),
-  setSuccess: (success) => set({ success })
+  setSuccess: (success) => set({ success }),
 }));

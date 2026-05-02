@@ -2,7 +2,14 @@ import { toast as sonnerToast } from "sonner";
 import { create } from "zustand";
 import type { ChannelId } from "../types";
 
-export type MainView = "channel" | "receive" | "send" | "clipboard" | "history" | "settings" | "dm";
+export type MainView =
+  | "channel"
+  | "receive"
+  | "send"
+  | "clipboard"
+  | "history"
+  | "settings"
+  | "dm";
 
 interface UiStore {
   view: MainView;
