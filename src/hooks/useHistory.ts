@@ -20,6 +20,7 @@ export function useHistory(filter = "all") {
     error,
     reload: load,
     clear: () => invoke("clear_history").then(load),
-    deleteEntry: (id: string) => invoke("delete_history_entry", { id }).then(load)
+    deleteEntry: (id: string) =>
+      invoke("delete_history_entry", { id }).then(load),
   };
 }

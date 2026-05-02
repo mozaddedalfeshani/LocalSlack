@@ -16,7 +16,9 @@ export function useDirectMessages(peer?: DeviceInfo) {
     store.setLoading(true);
     store.setError(undefined);
     try {
-      const events = await invoke<DirectMessageEvent[]>("get_direct_messages", { peerId });
+      const events = await invoke<DirectMessageEvent[]>("get_direct_messages", {
+        peerId,
+      });
       store.setThread(peerId, events);
     } catch (error) {
       store.setError(String(error));
@@ -38,9 +40,12 @@ export function useDirectMessages(peer?: DeviceInfo) {
   }, [peerId, refresh]);
 
   useEffect(() => {
-    const unlisten = listen<DirectMessageEvent>("direct-message-updated", (event) => {
-      useDirectMessageStore.getState().upsertEvent(event.payload);
-    });
+    const unlisten = listen<DirectMessageEvent>(
+      "direct-message-updated",
+      (event) => {
+        useDirectMessageStore.getState().upsertEvent(event.payload);
+      },
+    );
     return () => {
       unlisten.then((fn) => fn()).catch(() => undefined);
     };
@@ -49,7 +54,10 @@ export function useDirectMessages(peer?: DeviceInfo) {
   const sendText = async (target: DeviceInfo, text: string) => {
     store.setError(undefined);
     try {
-      const event = await invoke<DirectMessageEvent>("send_direct_text", { target, text });
+      const event = await invoke<DirectMessageEvent>("send_direct_text", {
+        target,
+        text,
+      });
       store.upsertEvent(event);
     } catch (error) {
       store.setError(String(error));
@@ -61,7 +69,10 @@ export function useDirectMessages(peer?: DeviceInfo) {
     store.setError(undefined);
     setIsSending(true);
     try {
-      const events = await invoke<DirectMessageEvent[]>("send_direct_files", { target, filePaths });
+      const events = await invoke<DirectMessageEvent[]>("send_direct_files", {
+        target,
+        filePaths,
+      });
       events.forEach(store.upsertEvent);
     } catch (error) {
       store.setError(String(error));
@@ -73,7 +84,7 @@ export function useDirectMessages(peer?: DeviceInfo) {
 
   return {
     ...store,
-    events: peerId ? store.threads[peerId] ?? [] : [],
+    events: peerId ? (store.threads[peerId] ?? []) : [],
     refresh,
     sendText,
     sendFiles,

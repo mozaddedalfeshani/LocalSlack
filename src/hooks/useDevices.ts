@@ -28,7 +28,9 @@ export function useDevices() {
     invoke<DeviceInfo[]>("scan_network_devices")
       .then((devices) => !disposed && store.setDevices(devices))
       .catch((error) => !disposed && store.setError(String(error)));
-    const unlisten = listen<DeviceInfo[]>("devices-updated", (event) => store.setDevices(event.payload));
+    const unlisten = listen<DeviceInfo[]>("devices-updated", (event) =>
+      store.setDevices(event.payload),
+    );
     return () => {
       disposed = true;
       unlisten.then((fn) => fn()).catch(() => undefined);

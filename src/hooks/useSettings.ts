@@ -11,14 +11,14 @@ const accentMap: Record<string, [string, string]> = {
   emerald: ["61 91 197", "47 75 178"],
   rose: ["61 91 197", "47 75 178"],
   amber: ["61 91 197", "47 75 178"],
-  sky: ["61 91 197", "47 75 178"]
+  sky: ["61 91 197", "47 75 178"],
 };
 
 function normalizeSettings(settings: AppSettings): AppSettings {
   return {
     ...settings,
     theme: settings.theme === "dark" ? "light" : settings.theme,
-    accentColor: settings.accentColor || "indigo"
+    accentColor: settings.accentColor || "indigo",
   };
 }
 
