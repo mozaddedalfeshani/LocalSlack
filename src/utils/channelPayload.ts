@@ -13,12 +13,20 @@ export function encodeChannelText(payload: ChannelTextPayload): string {
   return `${PREFIX}${JSON.stringify(payload)}`;
 }
 
-export function decodeChannelText(text: string): ChannelTextPayload | undefined {
+export function decodeChannelText(
+  text: string,
+): ChannelTextPayload | undefined {
   if (!text.startsWith(PREFIX)) return undefined;
 
   try {
-    const parsed = JSON.parse(text.slice(PREFIX.length)) as Partial<ChannelTextPayload>;
-    if (!parsed.channelId || typeof parsed.text !== "string" || typeof parsed.timestamp !== "number") {
+    const parsed = JSON.parse(
+      text.slice(PREFIX.length),
+    ) as Partial<ChannelTextPayload>;
+    if (
+      !parsed.channelId ||
+      typeof parsed.text !== "string" ||
+      typeof parsed.timestamp !== "number"
+    ) {
       return undefined;
     }
     return parsed as ChannelTextPayload;

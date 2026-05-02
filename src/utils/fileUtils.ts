@@ -9,7 +9,7 @@ export function filesFromList(list: FileList | File[]): SelectedFile[] {
       id: `${file.name}-${file.size}-${file.lastModified}-${crypto.randomUUID()}`,
       file: toFileLike(file),
       path,
-      previewUrl: isImage(file) ? URL.createObjectURL(file) : undefined
+      previewUrl: isImage(file) ? URL.createObjectURL(file) : undefined,
     };
   });
 }
@@ -20,19 +20,23 @@ export function selectedFilesFromEntries(entries: PathEntry[]): SelectedFile[] {
     file: {
       name: entry.name,
       size: entry.size,
-      type: entry.mimeType
+      type: entry.mimeType,
     },
-    path: entry.path
+    path: entry.path,
   }));
 }
 
-export async function selectedFilesFromPaths(paths: string[]): Promise<SelectedFile[]> {
+export async function selectedFilesFromPaths(
+  paths: string[],
+): Promise<SelectedFile[]> {
   if (paths.length === 0) return [];
   const entries = await invoke<PathEntry[]>("get_path_entries", { paths });
   return selectedFilesFromEntries(entries);
 }
 
-export async function pickDesktopFiles(kind: "files" | "folder"): Promise<SelectedFile[]> {
+export async function pickDesktopFiles(
+  kind: "files" | "folder",
+): Promise<SelectedFile[]> {
   const paths = await invoke<string[]>("pick_paths", { kind });
   return selectedFilesFromPaths(paths);
 }
@@ -42,7 +46,7 @@ function toFileLike(file: File): FileLike {
     name: file.name,
     size: file.size,
     type: file.type,
-    lastModified: file.lastModified
+    lastModified: file.lastModified,
   };
 }
 
@@ -51,10 +55,15 @@ export function isImage(file: FileLike): boolean {
 }
 
 export function isMedia(file: FileLike): boolean {
-  return /^(image|video|audio)\//.test(file.type) || /\.(svg|webp|mp4|mp3)$/i.test(file.name);
+  return (
+    /^(image|video|audio)\//.test(file.type) ||
+    /\.(svg|webp|mp4|mp3)$/i.test(file.name)
+  );
 }
 
-export function fileIconType(file: FileLike): "image" | "video" | "audio" | "archive" | "file" {
+export function fileIconType(
+  file: FileLike,
+): "image" | "video" | "audio" | "archive" | "file" {
   if (file.type.startsWith("image/")) return "image";
   if (file.type.startsWith("video/")) return "video";
   if (file.type.startsWith("audio/")) return "audio";
