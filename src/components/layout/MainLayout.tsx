@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Sidebar } from "./Sidebar";
 import type { ShareChannel } from "../../data/channels";
 import type { ChannelId, DeviceInfo } from "../../types";
+import type { MainView } from "../../store/uiStore";
 
 interface Props {
   children: ReactNode;
@@ -10,11 +11,14 @@ interface Props {
   selected?: DeviceInfo;
   loading?: boolean;
   error?: string;
-  view: "channel" | "receive" | "send" | "clipboard" | "history" | "settings";
+  view: MainView;
   channels: ShareChannel[];
   activeChannelId: ChannelId;
-  onView: (view: "channel" | "receive" | "send" | "clipboard" | "history" | "settings") => void;
+  activeDmDeviceId?: string;
+  onView: (view: MainView) => void;
   onChannel: (channelId: ChannelId) => void;
+  onDirectMessage: (device: DeviceInfo) => void;
+  onRefreshDevices: () => void;
   onCreateChannel: (name: string) => void;
   onRenameChannel: (channelId: string, name: string) => void;
   onSelect: (device: DeviceInfo) => void;

@@ -1,12 +1,14 @@
 use crate::{
     clipboard,
     channels::ChannelStore,
+    direct_messages::DirectMessageStore,
     favorites::FavoritesStore,
     history::HistoryStore,
     models::{
         now_unix, ChannelEvent, ChannelEventKind, ChannelEventsResponse, ClipboardPayload,
-        DeviceInfo, FileMetadata, HistoryEntry, IncomingTransferRequest, PrepareUploadRequest,
-        PrepareUploadResponse, TransferDirection, TransferProgress, TransferStatus,
+        DeviceInfo, DirectMessageEvent, DirectMessageKind, FileMetadata, HistoryEntry,
+        IncomingTransferRequest, PrepareUploadRequest, PrepareUploadResponse, TransferDirection,
+        TransferProgress, TransferStatus,
     },
     settings::SettingsStore,
 };
@@ -41,10 +43,12 @@ pub struct ServerState {
     pub settings: SettingsStore,
     pub history: HistoryStore,
     pub channels: ChannelStore,
+    pub direct_messages: DirectMessageStore,
     pub favorites: FavoritesStore,
     pub sessions: Arc<RwLock<HashMap<String, Vec<FileMetadata>>>>,
     pub sessions_senders: Arc<RwLock<HashMap<String, DeviceInfo>>>,
     pub sessions_channels: Arc<RwLock<HashMap<String, String>>>,
+    pub sessions_direct_messages: Arc<RwLock<HashMap<String, Vec<DirectMessageEvent>>>>,
     pub sessions_completed: Arc<RwLock<HashMap<String, HashSet<String>>>>,
     pub pending_incoming: Arc<RwLock<HashMap<String, IncomingTransferRequest>>>,
     pub accepted_sessions: Arc<RwLock<HashMap<String, bool>>>,
@@ -68,6 +72,7 @@ pub async fn start_server(mut state: ServerState) -> Result<(tokio::task::JoinHa
         .route("/api/v1/clipboard", post(clipboard_endpoint))
         .route("/api/v1/channel/events", get(channel_events).post(save_channel_events))
         .route("/api/v1/channel/assets/:asset_id", get(channel_asset))
+        .route("/api/v1/direct/messages", post(save_direct_message))
         .route("/api/v1/cancel/:session_id", delete(cancel))
         .layer(CorsLayer::permissive())
         .with_state(state);
@@ -167,7 +172,9 @@ async fn prepare_upload(
     let sender = request.sender;
     let files = request.files;
     let channel_id = request.channel_id;
+    let direct_message_events = request.direct_message_events;
     let is_channel_upload = channel_id.is_some();
+    let is_direct_message_upload = !direct_message_events.is_empty();
     state
         .sessions
         .write()
@@ -186,8 +193,18 @@ async fn prepare_upload(
             .await
             .insert(session_id.clone(), channel_id);
     }
+    if is_direct_message_upload {
+        state
+            .sessions_direct_messages
+            .write()
+            .await
+            .insert(session_id.clone(), direct_message_events);
+    }
     let settings = state.settings.get().await;
-    let mut accepted = is_channel_upload || settings.quick_save || settings.quick_save_mode == "on";
+    let mut accepted = is_channel_upload
+        || is_direct_message_upload
+        || settings.quick_save
+        || settings.quick_save_mode == "on";
     // Favorites mode: auto-accept only if sender is in favorites
     if !accepted && settings.quick_save_mode == "favorites" {
         accepted = state.favorites.is_favorite(&sender.id).unwrap_or(false);
@@ -213,7 +230,8 @@ async fn prepare_upload(
         state.sessions.write().await.remove(&session_id);
         state.sessions_senders.write().await.remove(&session_id);
         state.sessions_channels.write().await.remove(&session_id);
-    } else if !is_channel_upload {
+        state.sessions_direct_messages.write().await.remove(&session_id);
+    } else if !is_channel_upload && !is_direct_message_upload {
         present_receive_window(&state.app, "receiving-started");
         emit_receive_event(&state.app, "receiving-started", incoming);
     }
@@ -407,6 +425,30 @@ async fn save_upload(
         state.channels.save_event(event.clone())?;
         state.app.emit("channel-event-updated", event)?;
     }
+    if let Some(mut event) = state
+        .sessions_direct_messages
+        .read()
+        .await
+        .get(&session_id)
+        .and_then(|events| events.iter().find(|event| event.id == file_id).cloned())
+    {
+        let sender = state
+            .sessions_senders
+            .read()
+            .await
+            .get(&session_id)
+            .cloned();
+        event.peer_id = sender.as_ref().map(|device| device.id.clone()).unwrap_or_default();
+        event.recipient_id = state.device.id.clone();
+        event.recipient_name = state.device.name.clone();
+        event.recipient_emoji = state.device.emoji.clone();
+        event.kind = DirectMessageKind::Asset;
+        event.file_path = Some(output_path.to_string_lossy().to_string());
+        event.file_size = Some(written);
+        event.updated_at = now_unix();
+        state.direct_messages.save_event(event.clone())?;
+        state.app.emit("direct-message-updated", event)?;
+    }
     let session_complete = {
         let mut completed_sessions = state.sessions_completed.write().await;
         let completed_files = completed_sessions
@@ -425,6 +467,7 @@ async fn save_upload(
         state.sessions.write().await.remove(&session_id);
         state.sessions_senders.write().await.remove(&session_id);
         state.sessions_channels.write().await.remove(&session_id);
+        state.sessions_direct_messages.write().await.remove(&session_id);
         state.app.emit("transfer-complete", session_id.clone())?;
     }
     if settings.auto_open {
@@ -479,12 +522,32 @@ async fn clipboard_endpoint(
     }
 }
 
+async fn save_direct_message(
+    State(state): State<ServerState>,
+    Json(mut event): Json<DirectMessageEvent>,
+) -> impl IntoResponse {
+    event.peer_id = event.author_id.clone();
+    if event.recipient_id.is_empty() {
+        event.recipient_id = state.device.id.clone();
+        event.recipient_name = state.device.name.clone();
+        event.recipient_emoji = state.device.emoji.clone();
+    }
+    match state.direct_messages.save_remote_event(event.clone()) {
+        Ok(()) => {
+            let _ = state.app.emit("direct-message-updated", event);
+            StatusCode::ACCEPTED.into_response()
+        }
+        Err(error) => (StatusCode::BAD_REQUEST, error.to_string()).into_response(),
+    }
+}
+
 async fn cancel(
     State(state): State<ServerState>,
     Path(session_id): Path<String>,
 ) -> impl IntoResponse {
     state.sessions.write().await.remove(&session_id);
     state.sessions_senders.write().await.remove(&session_id);
+    state.sessions_direct_messages.write().await.remove(&session_id);
     state.sessions_completed.write().await.remove(&session_id);
     let _ = state.app.emit("transfer-failed", session_id);
     StatusCode::NO_CONTENT

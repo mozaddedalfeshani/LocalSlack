@@ -34,6 +34,7 @@ export interface FileMetadata {
 export type ChannelId = string;
 
 export type ChannelEventKind = "text" | "asset";
+export type DirectMessageKind = "text" | "asset";
 
 export interface ChannelEvent {
   id: string;
@@ -83,6 +84,26 @@ export interface SlackInfo {
 export interface ChannelEventsResponse {
   events: ChannelEvent[];
   slackInfo: SlackInfo;
+}
+
+export interface DirectMessageEvent {
+  id: string;
+  peerId: string;
+  kind: DirectMessageKind;
+  authorId: string;
+  authorName: string;
+  authorEmoji?: string;
+  recipientId: string;
+  recipientName: string;
+  recipientEmoji?: string;
+  text?: string;
+  assetId?: string;
+  fileName?: string;
+  fileSize?: number;
+  filePath?: string;
+  createdAt: number;
+  updatedAt: number;
+  deletedAt?: number;
 }
 
 export type TransferStatus = "pending" | "accepted" | "rejected" | "inProgress" | "completed" | "failed" | "cancelled";
