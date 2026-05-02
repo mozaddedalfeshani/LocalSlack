@@ -52,8 +52,15 @@ export function decorateChannel(channel: SlackChannel): ShareChannel {
   };
 }
 
-export function getChannel(channelId: string, availableChannels: ShareChannel[] = channels): ShareChannel {
-  return availableChannels.find((channel) => channel.id === channelId) ?? availableChannels[0] ?? channels[0];
+export function getChannel(
+  channelId: string,
+  availableChannels: ShareChannel[] = channels,
+): ShareChannel {
+  return (
+    availableChannels.find((channel) => channel.id === channelId) ??
+    availableChannels[0] ??
+    channels[0]
+  );
 }
 
 function channelIcon(channelId: string): LucideIcon {
