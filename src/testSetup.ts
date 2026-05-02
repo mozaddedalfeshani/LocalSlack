@@ -21,7 +21,7 @@ vi.mock("@tauri-apps/api/core", () => ({
         startMinimized: false,
         allowedIps: [],
         blockedIps: [],
-        retentionMonths: 5
+        retentionMonths: 5,
       });
     }
     if (command === "get_network_status") {
@@ -34,12 +34,18 @@ vi.mock("@tauri-apps/api/core", () => ({
         localIps: ["192.168.1.20"],
         port: 53317,
         serviceType: "_localslack._tcp.local.",
-        issues: []
+        issues: [],
       });
     }
-    if (command === "get_history" || command === "get_devices" || command === "scan_network_devices" || command === "get_local_ip") return Promise.resolve([]);
+    if (
+      command === "get_history" ||
+      command === "get_devices" ||
+      command === "scan_network_devices" ||
+      command === "get_local_ip"
+    )
+      return Promise.resolve([]);
     return Promise.resolve(undefined);
-  })
+  }),
 }));
 
 vi.mock("@tauri-apps/api/event", () => ({
@@ -47,6 +53,6 @@ vi.mock("@tauri-apps/api/event", () => ({
   TauriEvent: {
     DRAG_ENTER: "tauri://drag-enter",
     DRAG_LEAVE: "tauri://drag-leave",
-    DRAG_DROP: "tauri://drag-drop"
-  }
+    DRAG_DROP: "tauri://drag-drop",
+  },
 }));
