@@ -1,4 +1,11 @@
-import { AlertTriangle, CheckCircle2, RefreshCw, Server, Wifi, X } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  RefreshCw,
+  Server,
+  Wifi,
+  X,
+} from "lucide-react";
 import type { NetworkStatus } from "../../types";
 
 interface Props {
@@ -13,18 +20,35 @@ interface Props {
 function StatePill({ ok, label }: { ok: boolean; label: string }) {
   const Icon = ok ? CheckCircle2 : AlertTriangle;
   return (
-    <div className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${ok ? "border-success/40 bg-success/10 text-text-primary" : "border-warning/40 bg-warning/10 text-text-secondary"}`}>
+    <div
+      className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${ok ? "border-success/40 bg-success/10 text-text-primary" : "border-warning/40 bg-warning/10 text-text-secondary"}`}
+    >
       <Icon size={16} />
       <span>{label}</span>
     </div>
   );
 }
 
-export function StartupNetworkDialog({ open, status, loading, error, onRefresh, onClose }: Props) {
+export function StartupNetworkDialog({
+  open,
+  status,
+  loading,
+  error,
+  onRefresh,
+  onClose,
+}: Props) {
   if (!open) return null;
 
-  const ready = Boolean(status && status.hosting && status.discoveryRunning && status.advertising && status.localIps.length > 0);
-  const ips = status?.localIps.length ? status.localIps.join(", ") : "No LAN address";
+  const ready = Boolean(
+    status &&
+    status.hosting &&
+    status.discoveryRunning &&
+    status.advertising &&
+    status.localIps.length > 0,
+  );
+  const ips = status?.localIps.length
+    ? status.localIps.join(", ")
+    : "No LAN address";
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/55 p-4 backdrop-blur-sm">
@@ -35,11 +59,20 @@ export function StartupNetworkDialog({ open, status, loading, error, onRefresh, 
               <Wifi size={21} />
             </span>
             <div>
-              <h2 className="text-lg font-semibold text-text-primary">Network Status</h2>
-              <p className="text-sm text-text-muted">{status?.deviceName ?? "LocalSlack"}</p>
+              <h2 className="text-lg font-semibold text-text-primary">
+                Network Status
+              </h2>
+              <p className="text-sm text-text-muted">
+                {status?.deviceName ?? "LocalSlack"}
+              </p>
             </div>
           </div>
-          <button type="button" className="icon-button" onClick={onClose} aria-label="Close network status">
+          <button
+            type="button"
+            className="icon-button"
+            onClick={onClose}
+            aria-label="Close network status"
+          >
             <X size={18} />
           </button>
         </div>
@@ -53,14 +86,26 @@ export function StartupNetworkDialog({ open, status, loading, error, onRefresh, 
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <StatePill ok={Boolean(status?.hosting)} label="Hosting" />
-            <StatePill ok={Boolean(status?.discoveryRunning)} label="Discovery" />
-            <StatePill ok={Boolean(status?.advertising)} label={status?.hidden ? "Hidden" : "Visible"} />
+            <StatePill
+              ok={Boolean(status?.discoveryRunning)}
+              label="Discovery"
+            />
+            <StatePill
+              ok={Boolean(status?.advertising)}
+              label={status?.hidden ? "Hidden" : "Visible"}
+            />
           </div>
 
           <div className="rounded-md border border-border/60 bg-bg-elevated/55 p-4">
             <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-text-primary">
               <Server size={17} />
-              <span>{ready ? "Ready on local network" : loading ? "Checking network" : "Needs attention"}</span>
+              <span>
+                {ready
+                  ? "Ready on local network"
+                  : loading
+                    ? "Checking network"
+                    : "Needs attention"}
+              </span>
             </div>
             <dl className="grid gap-2 text-sm text-text-secondary">
               <div className="flex justify-between gap-4">
@@ -81,7 +126,10 @@ export function StartupNetworkDialog({ open, status, loading, error, onRefresh, 
           {status?.issues.length ? (
             <div className="grid gap-2">
               {status.issues.map((issue) => (
-                <div key={issue} className="flex items-center gap-2 text-sm text-text-secondary">
+                <div
+                  key={issue}
+                  className="flex items-center gap-2 text-sm text-text-secondary"
+                >
                   <AlertTriangle size={15} className="text-warning" />
                   <span>{issue}</span>
                 </div>
@@ -91,7 +139,12 @@ export function StartupNetworkDialog({ open, status, loading, error, onRefresh, 
         </div>
 
         <div className="flex justify-end gap-2 border-t border-border px-5 py-4">
-          <button type="button" className="secondary-button" onClick={onRefresh} disabled={loading}>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={onRefresh}
+            disabled={loading}
+          >
             <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
             Refresh
           </button>
