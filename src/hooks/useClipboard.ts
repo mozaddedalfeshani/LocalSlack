@@ -30,7 +30,9 @@ export function useClipboard() {
         // Fall back to the Rust clipboard bridge below.
       }
       return invoke<string>("read_clipboard").catch((err) => {
-        setError(`Clipboard read failed. Paste with Ctrl+V or grant clipboard access. ${String(err)}`);
+        setError(
+          `Clipboard read failed. Paste with Ctrl+V or grant clipboard access. ${String(err)}`,
+        );
         return "";
       });
     },
@@ -45,9 +47,12 @@ export function useClipboard() {
         // Fall back to the Rust clipboard bridge below.
       }
       return invoke("write_clipboard", { text }).catch((err) =>
-        setError(`Clipboard write failed. ${String(err)}`)
+        setError(`Clipboard write failed. ${String(err)}`),
       );
     },
-    send: (target: DeviceInfo, text: string) => invoke("send_clipboard_text", { target, text }).catch((err) => setError(String(err)))
+    send: (target: DeviceInfo, text: string) =>
+      invoke("send_clipboard_text", { target, text }).catch((err) =>
+        setError(String(err)),
+      ),
   };
 }

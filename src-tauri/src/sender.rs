@@ -63,6 +63,7 @@ pub async fn build_metadata(path: &PathBuf) -> Result<FileMetadata> {
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn send_files(
     app: AppHandle,
     canceller: TransferCanceller,

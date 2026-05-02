@@ -16,14 +16,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/info",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "info"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "info"]
             },
             "description": "Returns the current device info advertised by the running LocalSlack instance."
           }
@@ -49,14 +43,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/prepare-upload",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "prepare-upload"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "prepare-upload"]
             },
             "description": "Negotiates a file transfer session and returns an upload session identifier together with an accept/reject decision."
           }
@@ -79,16 +67,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/upload/{{sessionId}}/{{fileId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "upload",
-                "{{sessionId}}",
-                "{{fileId}}"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "upload", "{{sessionId}}", "{{fileId}}"]
             },
             "description": "Streams the binary file payload for an active upload session."
           }
@@ -100,15 +80,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/cancel/{{sessionId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "cancel",
-                "{{sessionId}}"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "cancel", "{{sessionId}}"]
             },
             "description": "Cancels an active file transfer session."
           }
@@ -120,16 +93,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/channel/assets/{{assetId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "channel",
-                "assets",
-                "{{assetId}}"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "channel", "assets", "{{assetId}}"]
             },
             "description": "Downloads a channel asset that is available on the current peer."
           }
@@ -155,14 +120,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/clipboard",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "clipboard"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "clipboard"]
             },
             "description": "Receives a clipboard text payload from a peer."
           }
@@ -179,15 +138,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/channel/events",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "channel",
-                "events"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "channel", "events"]
             },
             "description": "Returns the full channel event log together with current channel metadata."
           }
@@ -208,15 +160,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/channel/events",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "channel",
-                "events"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "channel", "events"]
             },
             "description": "Accepts remote channel events and channel metadata, then merges them into the local store."
           }

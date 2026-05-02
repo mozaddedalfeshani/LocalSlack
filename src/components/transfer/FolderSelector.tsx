@@ -2,7 +2,11 @@ import { FolderOpen } from "lucide-react";
 import { filesFromList } from "../../utils/fileUtils";
 import type { SelectedFile } from "../../types";
 
-export function FolderSelector({ onFiles }: { onFiles: (files: SelectedFile[]) => void }) {
+export function FolderSelector({
+  onFiles,
+}: {
+  onFiles: (files: SelectedFile[]) => void;
+}) {
   return (
     <label className="secondary-button cursor-pointer">
       <FolderOpen size={16} />
@@ -16,7 +20,9 @@ export function FolderSelector({ onFiles }: { onFiles: (files: SelectedFile[]) =
             input.webkitdirectory = true;
           }
         }}
-        onChange={(event) => event.target.files && onFiles(filesFromList(event.target.files))}
+        onChange={(event) =>
+          event.target.files && onFiles(filesFromList(event.target.files))
+        }
       />
     </label>
   );

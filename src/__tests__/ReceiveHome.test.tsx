@@ -11,7 +11,7 @@ test("shows receive status and quick save actions", () => {
       quickSaveMode="off"
       onQuickSaveMode={onQuickSaveMode}
       onHistory={() => undefined}
-    />
+    />,
   );
 
   expect(screen.getByText("Workstation")).toBeInTheDocument();

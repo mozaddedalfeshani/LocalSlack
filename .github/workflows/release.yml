@@ -132,4 +132,4 @@ jobs:
             - Devices must be on the same local network.
             - Repository: https://github.com/mozaddedalfeshani/swiftshare
           releaseDraft: false
-          prerelease: ${{ github.ref_type != 'tag' }}
+          prerelease: false

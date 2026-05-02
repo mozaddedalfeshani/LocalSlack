@@ -6,12 +6,12 @@ export default defineConfig({
   clearScreen: false,
   server: {
     strictPort: true,
-    port: 1420
+    port: 1420,
   },
   envPrefix: ["VITE_", "TAURI_"],
   test: {
     globals: true,
     environment: "jsdom",
-    setupFiles: "./src/testSetup.ts"
-  }
+    setupFiles: "./src/testSetup.ts",
+  },
 });

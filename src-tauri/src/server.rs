@@ -122,7 +122,8 @@ async fn save_channel_events(
     State(state): State<ServerState>,
     Json(payload): Json<ChannelEventsResponse>,
 ) -> impl IntoResponse {
-    if let Err(error) = state.channels.save_remote_events(payload.events) {
+    let sync_floor = state.settings.get().await.sync_floor;
+    if let Err(error) = state.channels.save_remote_events(payload.events, sync_floor) {
         return (StatusCode::BAD_REQUEST, error.to_string()).into_response();
     }
     if let Err(error) = state.channels.save_remote_slack_info(payload.slack_info) {
@@ -532,7 +533,8 @@ async fn save_direct_message(
         event.recipient_name = state.device.name.clone();
         event.recipient_emoji = state.device.emoji.clone();
     }
-    match state.direct_messages.save_remote_event(event.clone()) {
+    let sync_floor = state.settings.get().await.sync_floor;
+    match state.direct_messages.save_remote_event(event.clone(), sync_floor) {
         Ok(()) => {
             let _ = state.app.emit("direct-message-updated", event);
             StatusCode::ACCEPTED.into_response()

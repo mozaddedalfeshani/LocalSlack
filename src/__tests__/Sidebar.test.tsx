@@ -13,7 +13,7 @@ const peer: DeviceInfo = {
   port: 53317,
   deviceType: "desktop",
   isFavorite: false,
-  lastSeen: 1
+  lastSeen: 1,
 };
 
 test("sidebar shows members instead of receive and direct send tools", () => {
@@ -32,7 +32,7 @@ test("sidebar shows members instead of receive and direct send tools", () => {
       onSelect={() => undefined}
       onToggleFavorite={() => undefined}
       onSettings={() => undefined}
-    />
+    />,
   );
 
   expect(screen.getByText("Members")).toBeInTheDocument();
@@ -59,7 +59,7 @@ test("clicking a member opens direct messages", async () => {
       onSelect={() => undefined}
       onToggleFavorite={() => undefined}
       onSettings={() => undefined}
-    />
+    />,
   );
 
   await user.click(screen.getByText("Peer Laptop"));

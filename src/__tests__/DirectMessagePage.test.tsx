@@ -11,7 +11,7 @@ const localDevice: DeviceInfo = {
   port: 53317,
   deviceType: "desktop",
   isFavorite: false,
-  lastSeen: 1
+  lastSeen: 1,
 };
 
 const peer: DeviceInfo = {
@@ -22,7 +22,7 @@ const peer: DeviceInfo = {
   port: 53317,
   deviceType: "desktop",
   isFavorite: false,
-  lastSeen: 1
+  lastSeen: 1,
 };
 
 const event: DirectMessageEvent = {
@@ -37,7 +37,7 @@ const event: DirectMessageEvent = {
   recipientEmoji: "🚀",
   text: "hello directly",
   createdAt: 1,
-  updatedAt: 1
+  updatedAt: 1,
 };
 
 test("direct message page shows empty state", () => {
@@ -57,7 +57,7 @@ test("direct message page shows empty state", () => {
       onSendFiles={() => undefined}
       onOpenAsset={() => undefined}
       onCancel={() => undefined}
-    />
+    />,
   );
 
   expect(screen.getByText("No direct messages yet")).toBeInTheDocument();
@@ -80,7 +80,7 @@ test("direct message page renders message events", () => {
       onSendFiles={() => undefined}
       onOpenAsset={() => undefined}
       onCancel={() => undefined}
-    />
+    />,
   );
 
   expect(screen.getByText("hello directly")).toBeInTheDocument();

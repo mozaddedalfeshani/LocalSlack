@@ -9,5 +9,8 @@ export function normalizedDeviceType(device: DeviceInfo): string {
 }
 
 export function sortDevices(devices: DeviceInfo[]): DeviceInfo[] {
-  return [...devices].sort((a, b) => Number(b.isFavorite) - Number(a.isFavorite) || b.lastSeen - a.lastSeen);
+  return [...devices].sort(
+    (a, b) =>
+      Number(b.isFavorite) - Number(a.isFavorite) || b.lastSeen - a.lastSeen,
+  );
 }

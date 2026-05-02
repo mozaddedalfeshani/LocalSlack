@@ -106,7 +106,14 @@ export interface DirectMessageEvent {
   deletedAt?: number;
 }
 
-export type TransferStatus = "pending" | "accepted" | "rejected" | "inProgress" | "completed" | "failed" | "cancelled";
+export type TransferStatus =
+  | "pending"
+  | "accepted"
+  | "rejected"
+  | "inProgress"
+  | "completed"
+  | "failed"
+  | "cancelled";
 export type TransferDirection = "sent" | "received";
 
 export interface TransferProgress {
@@ -176,6 +183,7 @@ export interface AppSettings {
   allowedIps: string[];
   blockedIps: string[];
   retentionMonths: number;
+  syncFloor: number;
 }
 
 export interface FileLike {

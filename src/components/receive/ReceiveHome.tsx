@@ -14,17 +14,30 @@ interface Props {
   onHistory: () => void;
 }
 
-export function ReceiveHome({ deviceName, emoji, status, quickSaveMode, onQuickSaveMode, onHistory }: Props) {
+export function ReceiveHome({
+  deviceName,
+  emoji,
+  status,
+  quickSaveMode,
+  onQuickSaveMode,
+  onHistory,
+}: Props) {
   const [localIp, setLocalIp] = useState<string>("");
   const [spinning, setSpinning] = useState(true);
 
   useEffect(() => {
     invoke<{ localIps: string[] }>("get_network_status")
-      .then((s) => { if (s.localIps[0]) setLocalIp(s.localIps[0]); })
+      .then((s) => {
+        if (s.localIps[0]) setLocalIp(s.localIps[0]);
+      })
       .catch(() => undefined);
   }, []);
 
-  const segments: Array<{ id: QuickSaveMode; label: string; icon: typeof ShieldCheck }> = [
+  const segments: Array<{
+    id: QuickSaveMode;
+    label: string;
+    icon: typeof ShieldCheck;
+  }> = [
     { id: "off", label: "Off", icon: ShieldCheck },
     { id: "favorites", label: "Favorites", icon: Star },
     { id: "on", label: "On", icon: Zap },
@@ -70,7 +83,9 @@ export function ReceiveHome({ deviceName, emoji, status, quickSaveMode, onQuickS
       <div className="w-full max-w-sm space-y-4">
         {/* Quick Save segmented control */}
         <div>
-          <p className="mb-2 text-center text-sm font-medium text-text-muted">Quick Save</p>
+          <p className="mb-2 text-center text-sm font-medium text-text-muted">
+            Quick Save
+          </p>
           <div className="flex overflow-hidden rounded-full border border-border/60 bg-bg-surface">
             {segments.map((seg) => {
               const Icon = seg.icon;

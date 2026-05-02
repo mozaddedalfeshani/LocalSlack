@@ -1,5 +1,15 @@
 import { invoke } from "@tauri-apps/api/core";
-import { Check, Clock3, Github, Pencil, Plus, RefreshCw, Settings, Star, X } from "lucide-react";
+import {
+  Check,
+  Clock3,
+  Github,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Settings,
+  Star,
+  X,
+} from "lucide-react";
 import { useRef, useState } from "react";
 import type { ShareChannel } from "../../data/channels";
 import type { ChannelId, DeviceInfo } from "../../types";
@@ -65,13 +75,21 @@ export function Sidebar(props: Props) {
   return (
     <aside className="flex w-[270px] shrink-0 flex-col border-r border-border/60 bg-bg-secondary/80 px-3 py-8 text-text-primary shadow-cute backdrop-blur-xl">
       <div className="mb-8 flex items-center gap-3 px-5">
-        <img src={logo} alt="LocalSlack Logo" className="h-10 w-10 rounded-lg object-cover shadow-sm" />
-        <h1 className="font-display text-2xl font-bold tracking-normal">LocalSlack</h1>
+        <img
+          src={logo}
+          alt="LocalSlack Logo"
+          className="h-10 w-10 rounded-lg object-cover shadow-sm"
+        />
+        <h1 className="font-display text-2xl font-bold tracking-normal">
+          LocalSlack
+        </h1>
       </div>
 
       <div className="mb-8">
         <div className="mb-2 flex items-center justify-between px-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">Channels</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">
+            Channels
+          </p>
           <button
             type="button"
             className="grid h-7 w-7 place-items-center rounded-lg text-text-muted transition hover:bg-bg-surface hover:text-accent"
@@ -96,8 +114,10 @@ export function Sidebar(props: Props) {
         <nav className="space-y-1">
           {props.channels.map((channel) => {
             const Icon = channel.icon;
-            const active = props.view === "channel" && props.activeChannelId === channel.id;
-            const renaming = prompt?.kind === "rename" && prompt.channelId === channel.id;
+            const active =
+              props.view === "channel" && props.activeChannelId === channel.id;
+            const renaming =
+              prompt?.kind === "rename" && prompt.channelId === channel.id;
             return (
               <div key={channel.id}>
                 <div className={`rail-button ${active ? "active" : ""} pr-1`}>
@@ -109,13 +129,20 @@ export function Sidebar(props: Props) {
                     <span className="rail-icon">
                       <Icon size={21} strokeWidth={2.2} />
                     </span>
-                    <span className="min-w-0 flex-1 truncate"># {channel.name}</span>
-                    <span className="text-xs text-text-muted">{channel.messageCount}</span>
+                    <span className="min-w-0 flex-1 truncate">
+                      # {channel.name}
+                    </span>
+                    <span className="text-xs text-text-muted">
+                      {channel.messageCount}
+                    </span>
                   </button>
                   <button
                     type="button"
                     className="grid h-6 w-6 shrink-0 place-items-center rounded-lg text-text-muted transition hover:bg-bg-elevated hover:text-accent"
-                    onClick={(e) => { e.stopPropagation(); openRename(channel.id, channel.name); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openRename(channel.id, channel.name);
+                    }}
                     title="Rename channel"
                   >
                     <Pencil size={13} />
@@ -139,46 +166,68 @@ export function Sidebar(props: Props) {
 
       <div className="min-h-0 flex-1">
         <div className="mb-2 flex items-center justify-between px-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">Members</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">
+            Members
+          </p>
           <button
             type="button"
             className="grid h-7 w-7 place-items-center rounded-lg text-text-muted transition hover:bg-bg-surface hover:text-accent"
             onClick={props.onRefreshDevices}
             title="Refresh members"
           >
-            <RefreshCw size={16} className={props.loading ? "animate-spin" : ""} />
+            <RefreshCw
+              size={16}
+              className={props.loading ? "animate-spin" : ""}
+            />
           </button>
         </div>
 
-        {props.error && <p className="mx-4 mb-2 text-xs text-error">{props.error}</p>}
+        {props.error && (
+          <p className="mx-4 mb-2 text-xs text-error">{props.error}</p>
+        )}
         {props.devices.length === 0 ? (
-          <p className="px-4 text-sm text-text-muted">No online members found.</p>
+          <p className="px-4 text-sm text-text-muted">
+            No online members found.
+          </p>
         ) : (
           <nav className="space-y-1 overflow-y-auto pr-1">
             {props.devices.map((device) => {
-              const active = props.view === "dm" && props.activeDmDeviceId === device.id;
+              const active =
+                props.view === "dm" && props.activeDmDeviceId === device.id;
               return (
-                <div key={device.id} className={`rail-button ${active ? "active" : ""} pr-1`}>
+                <div
+                  key={device.id}
+                  className={`rail-button ${active ? "active" : ""} pr-1`}
+                >
                   <button
                     type="button"
                     className="flex min-w-0 flex-1 items-center gap-2 text-left"
                     onClick={() => props.onDirectMessage(device)}
                   >
                     <DeviceAvatar device={device} />
-                    <span className="min-w-0 flex-1 truncate">{device.name}</span>
+                    <span className="min-w-0 flex-1 truncate">
+                      {device.name}
+                    </span>
                     <span className="h-2 w-2 shrink-0 rounded-full bg-success" />
                   </button>
                   <button
                     type="button"
                     className="grid h-6 w-6 shrink-0 place-items-center rounded-lg text-text-muted transition hover:bg-bg-elevated hover:text-accent"
-                    aria-label={device.isFavorite ? "Remove favorite" : "Add favorite"}
+                    aria-label={
+                      device.isFavorite ? "Remove favorite" : "Add favorite"
+                    }
                     onClick={(event) => {
                       event.stopPropagation();
                       props.onToggleFavorite(device);
                     }}
-                    title={device.isFavorite ? "Remove favorite" : "Add favorite"}
+                    title={
+                      device.isFavorite ? "Remove favorite" : "Add favorite"
+                    }
                   >
-                    <Star size={13} fill={device.isFavorite ? "currentColor" : "none"} />
+                    <Star
+                      size={13}
+                      fill={device.isFavorite ? "currentColor" : "none"}
+                    />
                   </button>
                 </div>
               );
@@ -226,13 +275,19 @@ export function Sidebar(props: Props) {
 
 import { forwardRef } from "react";
 
-const ChannelNameInput = forwardRef<HTMLInputElement, {
-  value: string;
-  placeholder: string;
-  onChange: (v: string) => void;
-  onCommit: () => void;
-  onCancel: () => void;
-}>(function ChannelNameInput({ value, placeholder, onChange, onCommit, onCancel }, ref) {
+const ChannelNameInput = forwardRef<
+  HTMLInputElement,
+  {
+    value: string;
+    placeholder: string;
+    onChange: (v: string) => void;
+    onCommit: () => void;
+    onCancel: () => void;
+  }
+>(function ChannelNameInput(
+  { value, placeholder, onChange, onCommit, onCancel },
+  ref,
+) {
   return (
     <div className="mx-1 mb-1 rounded-lg border border-accent/40 bg-bg-surface p-2 shadow-sm">
       <input
@@ -242,16 +297,32 @@ const ChannelNameInput = forwardRef<HTMLInputElement, {
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Enter") { e.preventDefault(); onCommit(); }
-          if (e.key === "Escape") { e.preventDefault(); onCancel(); }
+          if (e.key === "Enter") {
+            e.preventDefault();
+            onCommit();
+          }
+          if (e.key === "Escape") {
+            e.preventDefault();
+            onCancel();
+          }
         }}
         className="w-full bg-transparent text-sm text-text-primary outline-none placeholder:text-text-muted"
       />
       <div className="mt-2 flex justify-end gap-1">
-        <button type="button" className="icon-button h-6 w-6" onClick={onCancel} title="Cancel">
+        <button
+          type="button"
+          className="icon-button h-6 w-6"
+          onClick={onCancel}
+          title="Cancel"
+        >
           <X size={13} />
         </button>
-        <button type="button" className="icon-button h-6 w-6 text-accent" onClick={onCommit} title="Save">
+        <button
+          type="button"
+          className="icon-button h-6 w-6 text-accent"
+          onClick={onCommit}
+          title="Save"
+        >
           <Check size={13} />
         </button>
       </div>

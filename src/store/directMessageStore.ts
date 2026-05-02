@@ -16,7 +16,7 @@ export const useDirectMessageStore = create<DirectMessageStore>((set) => ({
   loading: false,
   setThread: (peerId, events) =>
     set((state) => ({
-      threads: { ...state.threads, [peerId]: sortEvents(events) }
+      threads: { ...state.threads, [peerId]: sortEvents(events) },
     })),
   upsertEvent: (event) =>
     set((state) => {
@@ -26,14 +26,19 @@ export const useDirectMessageStore = create<DirectMessageStore>((set) => ({
       return {
         threads: {
           ...state.threads,
-          [event.peerId]: sortEvents([...thread.filter((item) => item.id !== event.id), event])
-        }
+          [event.peerId]: sortEvents([
+            ...thread.filter((item) => item.id !== event.id),
+            event,
+          ]),
+        },
       };
     }),
   setLoading: (loading) => set({ loading }),
-  setError: (error) => set({ error })
+  setError: (error) => set({ error }),
 }));
 
 function sortEvents(events: DirectMessageEvent[]): DirectMessageEvent[] {
-  return [...events].sort((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id));
+  return [...events].sort(
+    (a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id),
+  );
 }

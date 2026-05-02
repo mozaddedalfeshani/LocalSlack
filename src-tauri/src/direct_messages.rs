@@ -39,7 +39,10 @@ impl DirectMessageStore {
         Ok(())
     }
 
-    pub fn save_remote_event(&self, mut event: DirectMessageEvent) -> Result<()> {
+    pub fn save_remote_event(&self, mut event: DirectMessageEvent, sync_floor: u64) -> Result<()> {
+        if event.created_at < sync_floor {
+            return Ok(());
+        }
         if let Some(existing) = self.db.get(event.id.as_bytes())? {
             let current: DirectMessageEvent =
                 serde_json::from_slice(&existing).context("failed to decode direct message")?;
@@ -72,5 +75,11 @@ impl DirectMessageStore {
         }
         events.sort_by(|a, b| a.created_at.cmp(&b.created_at).then(a.id.cmp(&b.id)));
         Ok(events)
+    }
+
+    pub fn clear(&self) -> Result<()> {
+        self.db.clear()?;
+        self.db.flush()?;
+        Ok(())
     }
 }

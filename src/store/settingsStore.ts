@@ -19,7 +19,8 @@ export const defaultSettings: AppSettings = {
   startMinimized: false,
   allowedIps: [],
   blockedIps: [],
-  retentionMonths: 5
+  retentionMonths: 5,
+  syncFloor: 0,
 };
 
 interface SettingsStore {
@@ -36,7 +37,8 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   settings: defaultSettings,
   loading: false,
   setSettings: (settings) => set({ settings }),
-  patchSettings: (patch) => set((state) => ({ settings: { ...state.settings, ...patch } })),
+  patchSettings: (patch) =>
+    set((state) => ({ settings: { ...state.settings, ...patch } })),
   setLoading: (loading) => set({ loading }),
-  setError: (error) => set({ error })
+  setError: (error) => set({ error }),
 }));

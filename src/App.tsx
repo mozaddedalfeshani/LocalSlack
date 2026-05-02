@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useState } from "react";
+import { toast, Toaster } from "sonner";
 import { ChannelShare } from "./components/channel/ChannelShare";
 import { DirectMessagePage } from "./components/direct/DirectMessagePage";
 import { useDirectMessages } from "./hooks/useDirectMessages";
@@ -21,7 +22,14 @@ import { SendHome } from "./components/send/SendHome";
 import { SettingsPage } from "./components/settings/SettingsPage";
 import { ReceiveDialog } from "./components/transfer/ReceiveDialog";
 import { ProgressPage } from "./components/transfer/ProgressPage";
-import type { ChannelEvent, ChannelEventsResponse, ClipboardPayload, DeviceInfo, NetworkStatus, SlackInfo } from "./types";
+import type {
+  ChannelEvent,
+  ChannelEventsResponse,
+  ClipboardPayload,
+  DeviceInfo,
+  NetworkStatus,
+  SlackInfo,
+} from "./types";
 import { decodeChannelText } from "./utils/channelPayload";
 
 const CHANNEL_SYNC_INTERVAL_MS = 3_000;
@@ -43,7 +51,9 @@ export default function App() {
   const upsertChannelEvent = useChannelStore((state) => state.upsertEvent);
 
   useEffect(() => {
-    void invoke("set_receive_mode_active", { active: !settings.settings.hidden });
+    void invoke("set_receive_mode_active", {
+      active: !settings.settings.hidden,
+    });
   }, [settings.settings.hidden]);
 
   const refreshNetworkStatus = useCallback(async () => {
@@ -131,23 +141,28 @@ export default function App() {
     };
   }, [upsertChannelEvent]);
 
-  const toggleFavorite = async (device: typeof devices.devices[number]) => {
+  const toggleFavorite = async (device: (typeof devices.devices)[number]) => {
     const isFavorite = !device.isFavorite;
     if (isFavorite) await favorites.add(device);
     else await favorites.remove(device.id);
 
-    const update = (item: typeof device) => item.id === device.id ? { ...item, isFavorite } : item;
+    const update = (item: typeof device) =>
+      item.id === device.id ? { ...item, isFavorite } : item;
     devices.setDevices(devices.devices.map(update));
-    if (devices.selectedDevice?.id === device.id) devices.selectDevice(update(devices.selectedDevice));
+    if (devices.selectedDevice?.id === device.id)
+      devices.selectDevice(update(devices.selectedDevice));
   };
 
-  const setQuickSaveMode = useCallback((quickSaveMode: typeof settings.settings.quickSaveMode) => {
-    void settings.save({
-      ...settings.settings,
-      quickSaveMode,
-      quickSave: quickSaveMode === "on"
-    });
-  }, [settings]);
+  const setQuickSaveMode = useCallback(
+    (quickSaveMode: typeof settings.settings.quickSaveMode) => {
+      void settings.save({
+        ...settings.settings,
+        quickSaveMode,
+        quickSave: quickSaveMode === "on",
+      });
+    },
+    [settings],
+  );
 
   const handleAcceptIncoming = useCallback(() => {
     void transfer.acceptIncoming();
@@ -157,10 +172,13 @@ export default function App() {
     void transfer.rejectIncoming();
   }, [transfer.rejectIncoming]);
 
-  const handleSend = useCallback((device: DeviceInfo) => {
-    devices.selectDevice(device);
-    void transfer.send(device);
-  }, [devices, transfer]);
+  const handleSend = useCallback(
+    (device: DeviceInfo) => {
+      devices.selectDevice(device);
+      void transfer.send(device);
+    },
+    [devices, transfer],
+  );
 
   const syncChannelState = useCallback(async () => {
     const response = await invoke<ChannelEventsResponse>("sync_channels");
@@ -169,26 +187,36 @@ export default function App() {
     return response;
   }, [setChannelEvents, setSlackInfo]);
 
-  const createChannel = useCallback((name: string) => {
-    void invoke<SlackInfo>("create_channel", { name })
-      .then((info) => {
-        setSlackInfo(info);
-        const latest = [...info.channels].sort((a, b) => b.updatedAt - a.updatedAt)[0];
-        if (latest) ui.setChannel(latest.id);
-      })
-      .then(syncChannelState)
-      .catch((error) => useUiStore.getState().showToast(String(error)));
-  }, [setSlackInfo, syncChannelState, ui]);
+  const createChannel = useCallback(
+    (name: string) => {
+      void invoke<SlackInfo>("create_channel", { name })
+        .then((info) => {
+          setSlackInfo(info);
+          const latest = [...info.channels].sort(
+            (a, b) => b.updatedAt - a.updatedAt,
+          )[0];
+          if (latest) ui.setChannel(latest.id);
+        })
+        .then(syncChannelState)
+        .catch((error) => useUiStore.getState().showToast(String(error)));
+    },
+    [setSlackInfo, syncChannelState, ui],
+  );
 
-  const renameChannel = useCallback((channelId: string, name: string) => {
-    void invoke<SlackInfo>("rename_channel", { channelId, name })
-      .then(setSlackInfo)
-      .then(syncChannelState)
-      .catch((error) => useUiStore.getState().showToast(String(error)));
-  }, [setSlackInfo, syncChannelState]);
+  const renameChannel = useCallback(
+    (channelId: string, name: string) => {
+      void invoke<SlackInfo>("rename_channel", { channelId, name })
+        .then(setSlackInfo)
+        .then(syncChannelState)
+        .catch((error) => useUiStore.getState().showToast(String(error)));
+    },
+    [setSlackInfo, syncChannelState],
+  );
 
   const activeChannel = getChannel(ui.activeChannelId, channels);
-  const activeDmDevice = devices.devices.find((device) => device.id === ui.activeDmDeviceId) ?? devices.selectedDevice;
+  const activeDmDevice =
+    devices.devices.find((device) => device.id === ui.activeDmDeviceId) ??
+    devices.selectedDevice;
   const directMessages = useDirectMessages(activeDmDevice);
   const currentLocalDevice: DeviceInfo = localDevice ?? {
     id: settings.settings.deviceId || "local-device",
@@ -203,6 +231,10 @@ export default function App() {
 
   const sendChannelFiles = useCallback(() => {
     if (transfer.files.length === 0) return;
+    const fileCount = transfer.files.length;
+    const toastId = toast.loading(
+      `Sending ${fileCount === 1 ? "1 file" : `${fileCount} files`} to #${activeChannel.name}…`,
+    );
     void (async () => {
       const events: ChannelEvent[] = [];
       for (const item of transfer.files) {
@@ -216,55 +248,95 @@ export default function App() {
         events.push(event);
         upsertChannelEvent(event);
       }
+      transfer.clearFiles();
       await transfer.sendToDevices(
         devices.devices,
         `# ${activeChannel.name}`,
         ui.activeChannelId,
-        events.map((event) => event.assetId ?? event.id)
+        events.map((event) => event.assetId ?? event.id),
       );
-      window.setTimeout(() => void syncChannelState().catch(() => undefined), 1000);
-    })().catch(() => undefined);
-  }, [activeChannel.name, devices.devices, syncChannelState, transfer, ui.activeChannelId, upsertChannelEvent]);
+      toast.success("Files sent successfully", { id: toastId });
+      window.setTimeout(
+        () => void syncChannelState().catch(() => undefined),
+        1000,
+      );
+    })().catch(() => {
+      toast.error("Failed to send files", { id: toastId });
+    });
+  }, [
+    activeChannel.name,
+    devices.devices,
+    syncChannelState,
+    transfer,
+    ui.activeChannelId,
+    upsertChannelEvent,
+  ]);
 
-  const sendChannelMessage = useCallback((text: string) => {
-    void invoke<ChannelEvent>("save_channel_text_event", {
-      channelId: ui.activeChannelId,
-      text,
-    })
-      .then((event) => {
-        upsertChannelEvent(event);
-        return syncChannelState();
+  const sendChannelMessage = useCallback(
+    (text: string) => {
+      void invoke<ChannelEvent>("save_channel_text_event", {
+        channelId: ui.activeChannelId,
+        text,
       })
-      .catch(() => transfer.sendTextToDevices(devices.devices, ui.activeChannelId, text, currentLocalDevice));
-  }, [currentLocalDevice, devices.devices, syncChannelState, transfer, ui.activeChannelId, upsertChannelEvent]);
+        .then((event) => {
+          upsertChannelEvent(event);
+          return syncChannelState();
+        })
+        .catch(() =>
+          transfer.sendTextToDevices(
+            devices.devices,
+            ui.activeChannelId,
+            text,
+            currentLocalDevice,
+          ),
+        );
+    },
+    [
+      currentLocalDevice,
+      devices.devices,
+      syncChannelState,
+      transfer,
+      ui.activeChannelId,
+      upsertChannelEvent,
+    ],
+  );
 
-  const deleteChannelEvent = useCallback((id: string) => {
-    void invoke<ChannelEvent | null>("delete_channel_event", { id })
-      .then((event) => {
-        if (event) upsertChannelEvent(event);
-        return syncChannelState();
-      })
-      .catch(() => undefined);
-  }, [syncChannelState, upsertChannelEvent]);
+  const deleteChannelEvent = useCallback(
+    (id: string) => {
+      void invoke<ChannelEvent | null>("delete_channel_event", { id })
+        .then((event) => {
+          if (event) upsertChannelEvent(event);
+          return syncChannelState();
+        })
+        .catch(() => undefined);
+    },
+    [syncChannelState, upsertChannelEvent],
+  );
 
-  const editChannelMessage = useCallback((id: string, text: string) => {
-    void invoke<ChannelEvent | null>("edit_channel_text_event", { id, text })
-      .then((event) => {
-        if (event) upsertChannelEvent(event);
-        return syncChannelState();
-      })
-      .catch((error) => {
-        useUiStore.getState().showToast(String(error));
-      });
-  }, [syncChannelState, upsertChannelEvent]);
+  const editChannelMessage = useCallback(
+    (id: string, text: string) => {
+      void invoke<ChannelEvent | null>("edit_channel_text_event", { id, text })
+        .then((event) => {
+          if (event) upsertChannelEvent(event);
+          return syncChannelState();
+        })
+        .catch((error) => {
+          useUiStore.getState().showToast(String(error));
+        });
+    },
+    [syncChannelState, upsertChannelEvent],
+  );
 
-  const downloadChannelAsset = useCallback((id: string) => {
-    void invoke<ChannelEvent>("download_channel_asset", { eventId: id })
-      .then(upsertChannelEvent)
-      .catch((error) => {
-        useUiStore.getState().showToast(String(error));
-      });
-  }, [upsertChannelEvent]);
+  const downloadChannelAsset = useCallback(
+    (id: string) => {
+      void invoke<ChannelEvent>("download_channel_asset", { eventId: id })
+        .then(upsertChannelEvent)
+        .catch((error) => {
+          useUiStore.getState().showToast(String(error));
+        });
+    },
+    [upsertChannelEvent],
+  );
 
   const openChannelAsset = useCallback((path: string) => {
     void invoke("open_file", { path }).catch((error) => {
@@ -272,106 +344,140 @@ export default function App() {
     });
   }, []);
 
-  const openDirectMessage = useCallback((device: DeviceInfo) => {
-    devices.selectDevice(device);
-    ui.setDirectMessage(device.id);
-  }, [devices, ui]);
-
-  const sendDirectFiles = useCallback((device: DeviceInfo) => {
-    const paths = transfer.files.map((item) => item.path).filter(Boolean) as string[];
-    if (paths.length !== transfer.files.length) {
-      transfer.setError("Some files have no OS path. Use the File / Folder picker or drag from your File Manager.");
-      return;
-    }
-    void directMessages.sendFiles(device, paths).then(() => {
-      transfer.clearFiles();
-      transfer.clearProgress();
-    });
-  }, [directMessages, transfer]);
-
-  const isTransferring = transfer.outgoing != null || transfer.receiving != null || transfer.progress.length > 0;
-
-  const content = ui.view === "channel" ? (
-    <ChannelShare
-      channel={activeChannel}
-      localDevice={currentLocalDevice}
-      devices={devices.devices}
-      loading={devices.loading}
-      error={devices.error}
-      files={transfer.files}
-      progress={transfer.progress}
-      transferError={transfer.error}
-      onRefresh={devices.refresh}
-      onPickFiles={() => transfer.pick("files")}
-      onPickFolder={() => transfer.pick("folder")}
-      onRemoveFile={transfer.removeFile}
-      onClearFiles={transfer.clearFiles}
-      onSendFiles={sendChannelFiles}
-      onSendMessage={sendChannelMessage}
-      onDeleteEvent={deleteChannelEvent}
-      onEditMessage={editChannelMessage}
-      onDownloadAsset={downloadChannelAsset}
-      onOpenAsset={openChannelAsset}
-      onCancel={(id) => transfer.cancel(id)}
-    />
-  ) : ui.view === "dm" ? (
-    <DirectMessagePage
-      device={activeDmDevice}
-      localDevice={currentLocalDevice}
-      events={directMessages.events}
-      files={transfer.files}
-      progress={transfer.progress}
-      loading={directMessages.loading}
-      error={directMessages.error}
-      transferError={transfer.error}
-      onRefresh={directMessages.refresh}
-      onPickFiles={() => transfer.pick("files")}
-      onPickFolder={() => transfer.pick("folder")}
-      onRemoveFile={transfer.removeFile}
-      onClearFiles={transfer.clearFiles}
-      onSendText={(device, text) => void directMessages.sendText(device, text)}
-      onSendFiles={sendDirectFiles}
-      onOpenAsset={openChannelAsset}
-      onCancel={(id) => transfer.cancel(id)}
-    />
-  ) : ui.view === "receive" ? (
-    <ReceiveHome
-      deviceName={settings.settings.deviceName}
-      emoji={settings.settings.deviceEmoji}
-      status={settings.settings.hidden ? "Hidden" : "Online"}
-      quickSaveMode={settings.settings.quickSave ? "on" : settings.settings.quickSaveMode}
-      onQuickSaveMode={setQuickSaveMode}
-      onHistory={() => ui.setView("history")}
-    />
-  ) : ui.view === "history" ? (
-    <div className="h-full overflow-y-auto px-6 py-6"><HistoryList /></div>
-  ) : ui.view === "settings" ? (
-    <div className="h-full overflow-y-auto"><SettingsPage /></div>
-  ) : ui.view === "clipboard" ? (
-    <div className="h-full overflow-y-auto px-6 py-6"><ClipboardSend selectedDevice={devices.selectedDevice} /></div>
-  ) : (
-    <SendHome
-      devices={devices.devices}
-      selectedDevice={devices.selectedDevice}
-      loading={devices.loading}
-      error={devices.error}
-      files={transfer.files}
-      progress={transfer.progress}
-      transferError={transfer.error}
-      transferring={isTransferring}
-      onSelect={devices.selectDevice}
-      onToggleFavorite={toggleFavorite}
-      onRefresh={devices.refresh}
-      onFiles={transfer.addFiles}
-      onPickFiles={() => transfer.pick("files")}
-      onPickFolder={() => transfer.pick("folder")}
-      onClearFiles={transfer.clearFiles}
-      onRemoveFile={transfer.removeFile}
-      onSend={handleSend}
-      onCancel={(id) => transfer.cancel(id)}
-      onClipboard={() => ui.setView("clipboard")}
-    />
+  const openDirectMessage = useCallback(
+    (device: DeviceInfo) => {
+      devices.selectDevice(device);
+      ui.setDirectMessage(device.id);
+    },
+    [devices, ui],
   );
+
+  const sendDirectFiles = useCallback(
+    (device: DeviceInfo) => {
+      const paths = transfer.files
+        .map((item) => item.path)
+        .filter(Boolean) as string[];
+      if (paths.length !== transfer.files.length) {
+        transfer.setError(
+          "Some files have no OS path. Use the File / Folder picker or drag from your File Manager.",
+        );
+        return;
+      }
+      transfer.clearFiles();
+      const toastId = toast.loading(
+        `Sending ${paths.length === 1 ? "1 file" : `${paths.length} files`} to ${device.name}…`,
+      );
+      void directMessages
+        .sendFiles(device, paths)
+        .then(() => {
+          transfer.clearProgress();
+          toast.success("Files sent successfully", { id: toastId });
+        })
+        .catch(() => {
+          toast.error("Failed to send files", { id: toastId });
+        });
+    },
+    [directMessages, transfer],
+  );
+
+  const isTransferring =
+    transfer.outgoing != null ||
+    transfer.receiving != null ||
+    transfer.progress.length > 0;
+
+  const content =
+    ui.view === "channel" ? (
+      <ChannelShare
+        channel={activeChannel}
+        localDevice={currentLocalDevice}
+        devices={devices.devices}
+        loading={devices.loading}
+        error={devices.error}
+        files={transfer.files}
+        progress={transfer.progress}
+        transferError={transfer.error}
+        onRefresh={devices.refresh}
+        onPickFiles={() => transfer.pick("files")}
+        onPickFolder={() => transfer.pick("folder")}
+        onRemoveFile={transfer.removeFile}
+        onClearFiles={transfer.clearFiles}
+        onSendFiles={sendChannelFiles}
+        onSendMessage={sendChannelMessage}
+        onDeleteEvent={deleteChannelEvent}
+        onEditMessage={editChannelMessage}
+        onDownloadAsset={downloadChannelAsset}
+        onOpenAsset={openChannelAsset}
+        onCancel={(id) => transfer.cancel(id)}
+      />
+    ) : ui.view === "dm" ? (
+      <DirectMessagePage
+        device={activeDmDevice}
+        localDevice={currentLocalDevice}
+        events={directMessages.events}
+        files={transfer.files}
+        progress={transfer.progress}
+        loading={directMessages.loading}
+        sending={directMessages.isSending}
+        error={directMessages.error}
+        transferError={transfer.error}
+        onRefresh={directMessages.refresh}
+        onPickFiles={() => transfer.pick("files")}
+        onPickFolder={() => transfer.pick("folder")}
+        onRemoveFile={transfer.removeFile}
+        onClearFiles={transfer.clearFiles}
+        onSendText={(device, text) =>
+          void directMessages.sendText(device, text)
+        }
+        onSendFiles={sendDirectFiles}
+        onOpenAsset={openChannelAsset}
+        onCancel={(id) => transfer.cancel(id)}
+      />
+    ) : ui.view === "receive" ? (
+      <ReceiveHome
+        deviceName={settings.settings.deviceName}
+        emoji={settings.settings.deviceEmoji}
+        status={settings.settings.hidden ? "Hidden" : "Online"}
+        quickSaveMode={
+          settings.settings.quickSave ? "on" : settings.settings.quickSaveMode
+        }
+        onQuickSaveMode={setQuickSaveMode}
+        onHistory={() => ui.setView("history")}
+      />
+    ) : ui.view === "history" ? (
+      <div className="h-full overflow-y-auto px-6 py-6">
+        <HistoryList />
+      </div>
+    ) : ui.view === "settings" ? (
+      <div className="h-full overflow-y-auto">
+        <SettingsPage />
+      </div>
+    ) : ui.view === "clipboard" ? (
+      <div className="h-full overflow-y-auto px-6 py-6">
+        <ClipboardSend selectedDevice={devices.selectedDevice} />
+      </div>
+    ) : (
+      <SendHome
+        devices={devices.devices}
+        selectedDevice={devices.selectedDevice}
+        loading={devices.loading}
+        error={devices.error}
+        files={transfer.files}
+        progress={transfer.progress}
+        transferError={transfer.error}
+        transferring={isTransferring}
+        onSelect={devices.selectDevice}
+        onToggleFavorite={toggleFavorite}
+        onRefresh={devices.refresh}
+        onFiles={transfer.addFiles}
+        onPickFiles={() => transfer.pick("files")}
+        onPickFolder={() => transfer.pick("folder")}
+        onClearFiles={transfer.clearFiles}
+        onRemoveFile={transfer.removeFile}
+        onSend={handleSend}
+        onCancel={(id) => transfer.cancel(id)}
+        onClipboard={() => ui.setView("clipboard")}
+      />
+    );
 
   return (
     <>
@@ -427,11 +533,7 @@ export default function App() {
         onClose={() => setNetworkDialogOpen(false)}
       />
 
-      {ui.toast && (
-        <div className="fixed bottom-5 right-5 rounded-md bg-bg-elevated px-4 py-3 shadow-panel z-[200]">
-          {ui.toast}
-        </div>
-      )}
+      <Toaster position="bottom-right" richColors closeButton />
     </>
   );
 }

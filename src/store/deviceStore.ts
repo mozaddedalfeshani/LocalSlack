@@ -15,13 +15,14 @@ interface DeviceStore {
 export const useDeviceStore = create<DeviceStore>((set) => ({
   devices: [],
   loading: false,
-  setDevices: (devices) => set((state) => {
-    const selectedDevice = state.selectedDevice
-      ? devices.find((device) => device.id === state.selectedDevice?.id)
-      : undefined;
-    return { devices, selectedDevice };
-  }),
+  setDevices: (devices) =>
+    set((state) => {
+      const selectedDevice = state.selectedDevice
+        ? devices.find((device) => device.id === state.selectedDevice?.id)
+        : undefined;
+      return { devices, selectedDevice };
+    }),
   selectDevice: (selectedDevice) => set({ selectedDevice }),
   setLoading: (loading) => set({ loading }),
-  setError: (error) => set({ error })
+  setError: (error) => set({ error }),
 }));

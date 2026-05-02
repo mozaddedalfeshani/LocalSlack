@@ -4,5 +4,7 @@ import { HistoryList } from "../components/history/HistoryList";
 
 test("renders search and clear", () => {
   render(<HistoryList />);
-  expect(screen.getByPlaceholderText("Search files or devices...")).toBeInTheDocument();
+  expect(
+    screen.getByPlaceholderText("Search files or devices..."),
+  ).toBeInTheDocument();
 });

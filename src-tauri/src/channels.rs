@@ -49,8 +49,11 @@ impl ChannelStore {
         Ok(())
     }
 
-    pub fn save_remote_events(&self, events: Vec<ChannelEvent>) -> Result<()> {
+    pub fn save_remote_events(&self, events: Vec<ChannelEvent>, sync_floor: u64) -> Result<()> {
         for mut event in events {
+            if event.created_at < sync_floor {
+                continue;
+            }
             let key = event.id.as_bytes();
             if let Some(existing) = self.db.get(key)? {
                 let current: ChannelEvent =
@@ -260,6 +263,12 @@ impl ChannelStore {
     fn save_slack_info(&self, mut info: SlackInfo) -> Result<()> {
         normalize_slack_info(&mut info);
         self.db.insert(SLACK_INFO_KEY, serde_json::to_vec(&info)?)?;
+        self.db.flush()?;
+        Ok(())
+    }
+
+    pub fn clear(&self) -> Result<()> {
+        self.db.clear()?;
         self.db.flush()?;
         Ok(())
     }

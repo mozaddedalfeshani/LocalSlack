@@ -107,6 +107,7 @@ pub fn default_settings() -> AppSettings {
         allowed_ips: Vec::new(),
         blocked_ips: Vec::new(),
         retention_months: 5,
+        sync_floor: 0,
     }
 }
 

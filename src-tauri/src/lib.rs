@@ -411,6 +411,7 @@ async fn edit_channel_text_event(
 
 #[tauri::command]
 async fn sync_channels(state: State<'_, AppState>) -> Result<ChannelEventsResponse, String> {
+    let sync_floor = state.settings.get().await.sync_floor;
     let devices = state.discovery.devices(&state.favorites).await;
     let client = reqwest::Client::new();
     for device in devices {
@@ -418,7 +419,7 @@ async fn sync_channels(state: State<'_, AppState>) -> Result<ChannelEventsRespon
         if let Ok(response) = client.get(&url).send().await {
             if let Ok(response) = response.error_for_status() {
                 if let Ok(remote) = response.json::<ChannelEventsResponse>().await {
-                    let _ = state.channels.save_remote_events(remote.events);
+                    let _ = state.channels.save_remote_events(remote.events, sync_floor);
                     let _ = state.channels.save_remote_slack_info(remote.slack_info);
                 }
             }
@@ -552,6 +553,66 @@ async fn delete_history_entry(state: State<'_, AppState>, id: String) -> Result<
         .history
         .delete_entry(&id)
         .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+async fn clear_received_files(state: State<'_, AppState>) -> Result<usize, String> {
+    let entries = state
+        .history
+        .get_history("received")
+        .map_err(|e| e.to_string())?;
+
+    let mut deleted = 0usize;
+    for entry in &entries {
+        if !entry.file_path.is_empty() {
+            let _ = std::fs::remove_file(&entry.file_path);
+            deleted += 1;
+        }
+        state
+            .history
+            .delete_entry(&entry.id)
+            .map_err(|e| e.to_string())?;
+    }
+
+    Ok(deleted)
+}
+
+#[tauri::command]
+async fn factory_reset(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<(), String> {
+    // Wipe all received files from disk
+    let received = state
+        .history
+        .get_history("received")
+        .map_err(|e| e.to_string())?;
+    for entry in &received {
+        if !entry.file_path.is_empty() {
+            let _ = std::fs::remove_file(&entry.file_path);
+        }
+    }
+
+    // Reset settings to defaults, stamp sync_floor = now so old peer data is never re-synced.
+    // Do this BEFORE dropping the DB so settings.json is written while we still hold the lock.
+    let mut defaults = settings::default_settings();
+    defaults.sync_floor = models::now_unix();
+    state
+        .settings
+        .save(defaults)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    // Drop every store tree so Sled releases the file lock, then delete the entire DB directory.
+    // This avoids a race where app.restart() spawns the new process before the old one's Sled
+    // lock is released, which causes a panic in did_finish_launching on the new instance.
+    state.history.clear_history().map_err(|e| e.to_string())?;
+    state.channels.clear().map_err(|e| e.to_string())?;
+    state.direct_messages.clear().map_err(|e| e.to_string())?;
+    state.favorites.clear().map_err(|e| e.to_string())?;
+
+    if let Ok(db_dir) = settings::app_dir().map(|d| d.join("db")) {
+        let _ = std::fs::remove_dir_all(&db_dir);
+    }
+
+    app.restart();
 }
 
 #[tauri::command]
@@ -862,6 +923,8 @@ pub fn run() {
             get_history,
             clear_history,
             delete_history_entry,
+            clear_received_files,
+            factory_reset,
             get_settings,
             save_settings,
             open_file,

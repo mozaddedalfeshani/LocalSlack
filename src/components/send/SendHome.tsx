@@ -1,5 +1,9 @@
 import { Clipboard, File, FolderOpen, RefreshCw, Star, X } from "lucide-react";
-import type { DeviceInfo, SelectedFile, TransferProgress as Progress } from "../../types";
+import type {
+  DeviceInfo,
+  SelectedFile,
+  TransferProgress as Progress,
+} from "../../types";
 import { formatBytes } from "../../utils/formatUtils";
 import { sortDevices } from "../../utils/deviceUtils";
 import { DeviceAvatar } from "../devices/DeviceAvatar";
@@ -37,20 +41,37 @@ export function SendHome(props: Props) {
       <section className="px-5 pt-5 pb-4">
         {!hasFiles ? (
           <div>
-            <p className="mb-3 text-sm font-semibold text-text-muted uppercase tracking-wide">Select files</p>
+            <p className="mb-3 text-sm font-semibold text-text-muted uppercase tracking-wide">
+              Select files
+            </p>
             <div className="grid grid-cols-3 gap-3">
-              <BigButton icon={<File size={28} />} label="Files" onClick={props.onPickFiles} />
-              <BigButton icon={<FolderOpen size={28} />} label="Folder" onClick={props.onPickFolder} />
-              <BigButton icon={<Clipboard size={28} />} label="Text" onClick={props.onClipboard} />
+              <BigButton
+                icon={<File size={28} />}
+                label="Files"
+                onClick={props.onPickFiles}
+              />
+              <BigButton
+                icon={<FolderOpen size={28} />}
+                label="Folder"
+                onClick={props.onPickFolder}
+              />
+              <BigButton
+                icon={<Clipboard size={28} />}
+                label="Text"
+                onClick={props.onClipboard}
+              />
             </div>
           </div>
         ) : (
           <div className="rounded-md border border-border/50 bg-bg-surface p-4">
             <div className="mb-3 flex items-center justify-between">
               <div>
-                <p className="font-semibold text-text-primary">Selected files</p>
+                <p className="font-semibold text-text-primary">
+                  Selected files
+                </p>
                 <p className="text-sm text-text-muted">
-                  {props.files.length} file{props.files.length !== 1 ? "s" : ""} · {formatBytes(totalSize)}
+                  {props.files.length} file{props.files.length !== 1 ? "s" : ""}{" "}
+                  · {formatBytes(totalSize)}
                 </p>
               </div>
               <button
@@ -92,10 +113,18 @@ export function SendHome(props: Props) {
 
             {/* Add more */}
             <div className="mt-3 flex gap-2">
-              <button type="button" className="secondary-button gap-1.5 text-xs" onClick={props.onPickFiles}>
+              <button
+                type="button"
+                className="secondary-button gap-1.5 text-xs"
+                onClick={props.onPickFiles}
+              >
                 <File size={14} /> Add files
               </button>
-              <button type="button" className="secondary-button gap-1.5 text-xs" onClick={props.onPickFolder}>
+              <button
+                type="button"
+                className="secondary-button gap-1.5 text-xs"
+                onClick={props.onPickFolder}
+              >
                 <FolderOpen size={14} /> Add folder
               </button>
             </div>
@@ -121,7 +150,10 @@ export function SendHome(props: Props) {
             title="Refresh"
             onClick={props.onRefresh}
           >
-            <RefreshCw size={17} className={props.loading ? "animate-spin" : ""} />
+            <RefreshCw
+              size={17}
+              className={props.loading ? "animate-spin" : ""}
+            />
           </button>
         </div>
 
@@ -129,7 +161,9 @@ export function SendHome(props: Props) {
           <p className="text-sm text-text-muted">Searching for devices…</p>
         )}
         {!props.loading && props.devices.length === 0 && (
-          <p className="text-sm text-text-muted">No devices found on this network.</p>
+          <p className="text-sm text-text-muted">
+            No devices found on this network.
+          </p>
         )}
 
         <div className="space-y-2">
@@ -138,10 +172,21 @@ export function SendHome(props: Props) {
               // Match by session that belongs to this device (can't know for sure, show all progress when device is selected)
               return props.selectedDevice?.id === device.id;
             });
-            const totalBytes = devProgress.reduce((s, p) => s + p.totalBytes, 0);
-            const doneBytes = devProgress.reduce((s, p) => s + p.bytesTransferred, 0);
-            const pct = totalBytes > 0 ? Math.round((doneBytes / totalBytes) * 100) : undefined;
-            const isSending = props.selectedDevice?.id === device.id && props.progress.length > 0;
+            const totalBytes = devProgress.reduce(
+              (s, p) => s + p.totalBytes,
+              0,
+            );
+            const doneBytes = devProgress.reduce(
+              (s, p) => s + p.bytesTransferred,
+              0,
+            );
+            const pct =
+              totalBytes > 0
+                ? Math.round((doneBytes / totalBytes) * 100)
+                : undefined;
+            const isSending =
+              props.selectedDevice?.id === device.id &&
+              props.progress.length > 0;
 
             return (
               <DeviceListTile
@@ -163,7 +208,15 @@ export function SendHome(props: Props) {
   );
 }
 
-function BigButton({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) {
+function BigButton({
+  icon,
+  label,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
@@ -194,7 +247,9 @@ function DeviceListTile({
       role="button"
       tabIndex={0}
       onClick={onTap}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onTap(); }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") onTap();
+      }}
       className={`flex w-full cursor-pointer items-center gap-3 rounded-lg border bg-bg-surface p-3 transition select-none ${
         hasFiles
           ? "border-border/40 hover:border-accent hover:bg-bg-elevated"
@@ -204,7 +259,9 @@ function DeviceListTile({
       <DeviceAvatar device={device} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="truncate font-semibold text-text-primary">{device.name}</span>
+          <span className="truncate font-semibold text-text-primary">
+            {device.name}
+          </span>
           <span className="h-1.5 w-1.5 rounded-full bg-success" />
         </div>
         <p className="truncate text-xs text-text-muted">{device.ip}</p>
@@ -220,7 +277,10 @@ function DeviceListTile({
       <button
         type="button"
         aria-label={device.isFavorite ? "Remove favorite" : "Add favorite"}
-        onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggleFavorite();
+        }}
         className="shrink-0 rounded-md p-1 text-text-secondary transition hover:bg-bg-elevated hover:text-accent"
       >
         <Star size={17} fill={device.isFavorite ? "currentColor" : "none"} />
