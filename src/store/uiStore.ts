@@ -1,3 +1,4 @@
+import { toast as sonnerToast } from "sonner";
 import { create } from "zustand";
 import type { ChannelId } from "../types";
 
@@ -9,7 +10,6 @@ interface UiStore {
   activeDmDeviceId?: string;
   settingsOpen: boolean;
   clipboardOpen: boolean;
-  toast?: string;
   setView: (view: MainView) => void;
   setChannel: (channelId: ChannelId) => void;
   setDirectMessage: (deviceId: string) => void;
@@ -30,9 +30,6 @@ export const useUiStore = create<UiStore>((set) => ({
   setDirectMessage: (activeDmDeviceId) => set({ activeDmDeviceId, view: "dm" }),
   setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
   setClipboardOpen: (clipboardOpen) => set({ clipboardOpen }),
-  showToast: (toast) => {
-    set({ toast });
-    window.setTimeout(() => set({ toast: undefined }), 3000);
-  },
-  clearToast: () => set({ toast: undefined })
+  showToast: (message) => sonnerToast.error(message),
+  clearToast: () => undefined,
 }));

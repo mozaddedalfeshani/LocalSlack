@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useState } from "react";
+import { toast, Toaster } from "sonner";
 import { ChannelShare } from "./components/channel/ChannelShare";
 import { DirectMessagePage } from "./components/direct/DirectMessagePage";
 import { useDirectMessages } from "./hooks/useDirectMessages";
@@ -203,6 +204,8 @@ export default function App() {
 
   const sendChannelFiles = useCallback(() => {
     if (transfer.files.length === 0) return;
+    const fileCount = transfer.files.length;
+    const toastId = toast.loading(`Sending ${fileCount === 1 ? "1 file" : `${fileCount} files`} to #${activeChannel.name}…`);
     void (async () => {
       const events: ChannelEvent[] = [];
       for (const item of transfer.files) {
@@ -216,14 +219,18 @@ export default function App() {
         events.push(event);
         upsertChannelEvent(event);
       }
+      transfer.clearFiles();
       await transfer.sendToDevices(
         devices.devices,
         `# ${activeChannel.name}`,
         ui.activeChannelId,
         events.map((event) => event.assetId ?? event.id)
       );
+      toast.success("Files sent successfully", { id: toastId });
       window.setTimeout(() => void syncChannelState().catch(() => undefined), 1000);
-    })().catch(() => undefined);
+    })().catch(() => {
+      toast.error("Failed to send files", { id: toastId });
+    });
   }, [activeChannel.name, devices.devices, syncChannelState, transfer, ui.activeChannelId, upsertChannelEvent]);
 
   const sendChannelMessage = useCallback((text: string) => {
@@ -283,9 +290,13 @@ export default function App() {
       transfer.setError("Some files have no OS path. Use the File / Folder picker or drag from your File Manager.");
       return;
     }
+    transfer.clearFiles();
+    const toastId = toast.loading(`Sending ${paths.length === 1 ? "1 file" : `${paths.length} files`} to ${device.name}…`);
     void directMessages.sendFiles(device, paths).then(() => {
-      transfer.clearFiles();
       transfer.clearProgress();
+      toast.success("Files sent successfully", { id: toastId });
+    }).catch(() => {
+      toast.error("Failed to send files", { id: toastId });
     });
   }, [directMessages, transfer]);
 
@@ -322,6 +333,7 @@ export default function App() {
       files={transfer.files}
       progress={transfer.progress}
       loading={directMessages.loading}
+      sending={directMessages.isSending}
       error={directMessages.error}
       transferError={transfer.error}
       onRefresh={directMessages.refresh}
@@ -427,11 +439,7 @@ export default function App() {
         onClose={() => setNetworkDialogOpen(false)}
       />
 
-      {ui.toast && (
-        <div className="fixed bottom-5 right-5 rounded-md bg-bg-elevated px-4 py-3 shadow-panel z-[200]">
-          {ui.toast}
-        </div>
-      )}
+      <Toaster position="bottom-right" richColors closeButton />
     </>
   );
 }

@@ -1,4 +1,4 @@
-import { File, FolderOpen, Paperclip, RefreshCw, Send, X, ExternalLink } from "lucide-react";
+import { File, FolderOpen, Loader2, Paperclip, RefreshCw, Send, X, ExternalLink } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { DeviceInfo, DirectMessageEvent, SelectedFile, TransferProgress as Progress } from "../../types";
 import { formatBytes, formatTime } from "../../utils/formatUtils";
@@ -12,6 +12,7 @@ interface Props {
   files: SelectedFile[];
   progress: Progress[];
   loading?: boolean;
+  sending?: boolean;
   error?: string;
   transferError?: string;
   onRefresh: () => void;
@@ -133,9 +134,10 @@ export function DirectMessagePage(props: Props) {
           </p>
         )}
 
-        <div className="rounded-md border border-border/80 bg-bg-surface p-2">
+        <div className={`rounded-md border p-2 transition-colors ${props.sending ? "border-border/40 bg-bg-surface/50 opacity-60" : "border-border/80 bg-bg-surface"}`}>
           <textarea
             value={message}
+            disabled={props.sending}
             onChange={(event) => setMessage(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {
@@ -143,24 +145,24 @@ export function DirectMessagePage(props: Props) {
                 if (canSendText) submitMessage();
               }
             }}
-            placeholder={`Message ${props.device.name}`}
-            className="min-h-20 w-full resize-none bg-transparent px-2 py-2 text-sm text-text-primary outline-none placeholder:text-text-muted"
+            placeholder={props.sending ? "Sending files…" : `Message ${props.device.name}`}
+            className="min-h-20 w-full resize-none bg-transparent px-2 py-2 text-sm text-text-primary outline-none placeholder:text-text-muted disabled:cursor-not-allowed"
           />
           <div className="flex items-center justify-between gap-2 border-t border-border/50 pt-2">
             <div className="flex items-center gap-1">
-              <button type="button" className="icon-button" onClick={props.onPickFiles} title="Attach files">
+              <button type="button" className="icon-button" disabled={props.sending} onClick={props.onPickFiles} title="Attach files">
                 <Paperclip size={17} />
               </button>
-              <button type="button" className="icon-button" onClick={props.onPickFolder} title="Attach folder">
+              <button type="button" className="icon-button" disabled={props.sending} onClick={props.onPickFolder} title="Attach folder">
                 <FolderOpen size={17} />
               </button>
             </div>
             <div className="flex items-center gap-2">
-              <button type="button" className="secondary-button" disabled={!canSendFiles} onClick={() => props.device && props.onSendFiles(props.device)}>
-                <File size={16} />
-                Share files
+              <button type="button" className="secondary-button" disabled={!canSendFiles || props.sending} onClick={() => props.device && props.onSendFiles(props.device)}>
+                {props.sending ? <Loader2 size={16} className="animate-spin" /> : <File size={16} />}
+                {props.sending ? "Sending…" : "Share files"}
               </button>
-              <button type="button" className="primary-button" disabled={!canSendText} onClick={submitMessage}>
+              <button type="button" className="primary-button" disabled={!canSendText || props.sending} onClick={submitMessage}>
                 <Send size={16} />
                 Send
               </button>
