@@ -1,7 +1,7 @@
-pub mod clipboard;
 pub mod channels;
-pub mod discovery;
+pub mod clipboard;
 pub mod direct_messages;
+pub mod discovery;
 pub mod favorites;
 pub mod history;
 pub mod models;
@@ -11,8 +11,8 @@ pub mod settings;
 
 use anyhow::Context;
 use channels::ChannelStore;
-use discovery::DiscoveryState;
 use direct_messages::DirectMessageStore;
+use discovery::DiscoveryState;
 use favorites::FavoritesStore;
 use history::HistoryStore;
 use models::{
@@ -105,8 +105,8 @@ async fn send_files(
         asset_ids,
         Vec::new(),
     )
-        .await
-        .map_err(|error| error.to_string())
+    .await
+    .map_err(|error| error.to_string())
 }
 
 #[tauri::command]
@@ -424,10 +424,7 @@ async fn sync_channels(state: State<'_, AppState>) -> Result<ChannelEventsRespon
                 }
             }
         }
-        let current_events = state
-            .channels
-            .events()
-            .map_err(|error| error.to_string())?;
+        let current_events = state.channels.events().map_err(|error| error.to_string())?;
         let current_slack_info = state
             .channels
             .slack_info()
@@ -460,10 +457,7 @@ async fn download_channel_asset(
         .event(&event_id)
         .map_err(|error| error.to_string())?
         .ok_or_else(|| "channel asset was not found".to_string())?;
-    let asset_id = event
-        .asset_id
-        .clone()
-        .unwrap_or_else(|| event.id.clone());
+    let asset_id = event.asset_id.clone().unwrap_or_else(|| event.id.clone());
     let file_name = event
         .file_name
         .clone()
@@ -657,8 +651,7 @@ async fn open_folder(path: String) -> Result<(), String> {
 
 #[tauri::command]
 async fn open_github_repository() -> Result<(), String> {
-    open::that("https://github.com/mozaddedalfeshani/swiftshare")
-        .map_err(|error| error.to_string())
+    open::that("https://github.com/mozaddedalfeshani/swiftshare").map_err(|error| error.to_string())
 }
 
 #[tauri::command]
@@ -807,8 +800,14 @@ fn unique_local_path(dir: PathBuf, file_name: &str) -> PathBuf {
         return base;
     }
     let path = Path::new(file_name);
-    let stem = path.file_stem().and_then(|value| value.to_str()).unwrap_or("file");
-    let ext = path.extension().and_then(|value| value.to_str()).unwrap_or("");
+    let stem = path
+        .file_stem()
+        .and_then(|value| value.to_str())
+        .unwrap_or("file");
+    let ext = path
+        .extension()
+        .and_then(|value| value.to_str())
+        .unwrap_or("");
     for index in 1..1000 {
         let candidate_name = if ext.is_empty() {
             format!("{stem} ({index})")

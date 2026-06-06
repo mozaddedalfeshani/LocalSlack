@@ -1,6 +1,6 @@
 use crate::{
-    clipboard,
     channels::ChannelStore,
+    clipboard,
     direct_messages::DirectMessageStore,
     favorites::FavoritesStore,
     history::HistoryStore,
@@ -70,7 +70,10 @@ pub async fn start_server(mut state: ServerState) -> Result<(tokio::task::JoinHa
         .route("/api/v1/prepare-upload", post(prepare_upload))
         .route("/api/v1/upload/:session_id/:file_id", post(upload))
         .route("/api/v1/clipboard", post(clipboard_endpoint))
-        .route("/api/v1/channel/events", get(channel_events).post(save_channel_events))
+        .route(
+            "/api/v1/channel/events",
+            get(channel_events).post(save_channel_events),
+        )
         .route("/api/v1/channel/assets/:asset_id", get(channel_asset))
         .route("/api/v1/direct/messages", post(save_direct_message))
         .route("/api/v1/cancel/:session_id", delete(cancel))
@@ -123,7 +126,10 @@ async fn save_channel_events(
     Json(payload): Json<ChannelEventsResponse>,
 ) -> impl IntoResponse {
     let sync_floor = state.settings.get().await.sync_floor;
-    if let Err(error) = state.channels.save_remote_events(payload.events, sync_floor) {
+    if let Err(error) = state
+        .channels
+        .save_remote_events(payload.events, sync_floor)
+    {
         return (StatusCode::BAD_REQUEST, error.to_string()).into_response();
     }
     if let Err(error) = state.channels.save_remote_slack_info(payload.slack_info) {
@@ -141,7 +147,9 @@ async fn channel_asset(
         .events()
         .unwrap_or_default()
         .into_iter()
-        .find(|event| event.asset_id.as_deref() == Some(asset_id.as_str()) && event.deleted_at.is_none());
+        .find(|event| {
+            event.asset_id.as_deref() == Some(asset_id.as_str()) && event.deleted_at.is_none()
+        });
     let Some(event) = event else {
         return StatusCode::NOT_FOUND.into_response();
     };
@@ -161,8 +169,7 @@ async fn prepare_upload(
     let sender = request.sender.clone();
     // Enforce IP allow/block lists from settings
     let filter_settings = state.settings.get().await;
-    if !filter_settings.allowed_ips.is_empty()
-        && !filter_settings.allowed_ips.contains(&sender.ip)
+    if !filter_settings.allowed_ips.is_empty() && !filter_settings.allowed_ips.contains(&sender.ip)
     {
         return StatusCode::FORBIDDEN.into_response();
     }
@@ -231,7 +238,11 @@ async fn prepare_upload(
         state.sessions.write().await.remove(&session_id);
         state.sessions_senders.write().await.remove(&session_id);
         state.sessions_channels.write().await.remove(&session_id);
-        state.sessions_direct_messages.write().await.remove(&session_id);
+        state
+            .sessions_direct_messages
+            .write()
+            .await
+            .remove(&session_id);
     } else if !is_channel_upload && !is_direct_message_upload {
         present_receive_window(&state.app, "receiving-started");
         emit_receive_event(&state.app, "receiving-started", incoming);
@@ -330,7 +341,10 @@ async fn save_upload(
             sha256: String::new(),
         });
     let settings = state.settings.get().await;
-    let save_dir = channel_save_dir(&settings.save_path, state.sessions_channels.read().await.get(&session_id));
+    let save_dir = channel_save_dir(
+        &settings.save_path,
+        state.sessions_channels.read().await.get(&session_id),
+    );
     fs::create_dir_all(&save_dir)
         .await
         .context("failed to create save path")?;
@@ -394,7 +408,13 @@ async fn save_upload(
         status: TransferStatus::Completed,
     };
     state.history.save_history_entry(entry)?;
-    if let Some(channel_id) = state.sessions_channels.read().await.get(&session_id).cloned() {
+    if let Some(channel_id) = state
+        .sessions_channels
+        .read()
+        .await
+        .get(&session_id)
+        .cloned()
+    {
         let sender = state
             .sessions_senders
             .read()
@@ -406,13 +426,22 @@ async fn save_upload(
             id: file_id.clone(),
             channel_id,
             kind: ChannelEventKind::Asset,
-            author_id: sender.as_ref().map(|device| device.id.clone()).unwrap_or_default(),
+            author_id: sender
+                .as_ref()
+                .map(|device| device.id.clone())
+                .unwrap_or_default(),
             author_name: sender
                 .as_ref()
                 .map(|device| device.name.clone())
                 .unwrap_or_else(|| "Unknown".to_string()),
-            author_emoji: sender.as_ref().map(|device| device.emoji.clone()).unwrap_or_default(),
-            author_ip: sender.as_ref().map(|device| device.ip.clone()).unwrap_or_default(),
+            author_emoji: sender
+                .as_ref()
+                .map(|device| device.emoji.clone())
+                .unwrap_or_default(),
+            author_ip: sender
+                .as_ref()
+                .map(|device| device.ip.clone())
+                .unwrap_or_default(),
             text: None,
             asset_id: Some(file_id.clone()),
             file_name: Some(file_meta.name.clone()),
@@ -439,7 +468,10 @@ async fn save_upload(
             .await
             .get(&session_id)
             .cloned();
-        event.peer_id = sender.as_ref().map(|device| device.id.clone()).unwrap_or_default();
+        event.peer_id = sender
+            .as_ref()
+            .map(|device| device.id.clone())
+            .unwrap_or_default();
         event.recipient_id = state.device.id.clone();
         event.recipient_name = state.device.name.clone();
         event.recipient_emoji = state.device.emoji.clone();
@@ -468,7 +500,11 @@ async fn save_upload(
         state.sessions.write().await.remove(&session_id);
         state.sessions_senders.write().await.remove(&session_id);
         state.sessions_channels.write().await.remove(&session_id);
-        state.sessions_direct_messages.write().await.remove(&session_id);
+        state
+            .sessions_direct_messages
+            .write()
+            .await
+            .remove(&session_id);
         state.app.emit("transfer-complete", session_id.clone())?;
     }
     if settings.auto_open {
@@ -534,7 +570,10 @@ async fn save_direct_message(
         event.recipient_emoji = state.device.emoji.clone();
     }
     let sync_floor = state.settings.get().await.sync_floor;
-    match state.direct_messages.save_remote_event(event.clone(), sync_floor) {
+    match state
+        .direct_messages
+        .save_remote_event(event.clone(), sync_floor)
+    {
         Ok(()) => {
             let _ = state.app.emit("direct-message-updated", event);
             StatusCode::ACCEPTED.into_response()
@@ -549,7 +588,11 @@ async fn cancel(
 ) -> impl IntoResponse {
     state.sessions.write().await.remove(&session_id);
     state.sessions_senders.write().await.remove(&session_id);
-    state.sessions_direct_messages.write().await.remove(&session_id);
+    state
+        .sessions_direct_messages
+        .write()
+        .await
+        .remove(&session_id);
     state.sessions_completed.write().await.remove(&session_id);
     let _ = state.app.emit("transfer-failed", session_id);
     StatusCode::NO_CONTENT

@@ -32,9 +32,15 @@ fn direct_messages_store_threads_by_peer_and_sorts() {
         .open()
         .expect("temporary db");
     let store = DirectMessageStore::open(db.open_tree("direct_messages").expect("dm tree"));
-    store.save_event(dm("late", "peer-1", 20)).expect("save late");
-    store.save_event(dm("other", "peer-2", 5)).expect("save other");
-    store.save_event(dm("early", "peer-1", 10)).expect("save early");
+    store
+        .save_event(dm("late", "peer-1", 20))
+        .expect("save late");
+    store
+        .save_event(dm("other", "peer-2", 5))
+        .expect("save other");
+    store
+        .save_event(dm("early", "peer-1", 10))
+        .expect("save early");
 
     let thread = store.thread("peer-1").expect("thread");
     assert_eq!(thread.len(), 2);

@@ -23,7 +23,9 @@ fn channel_metadata_tracks_counts_and_recent_renames() {
     let store = ChannelStore::open(db.open_tree("channels").unwrap());
     let author = test_device();
 
-    let info = store.create_channel("Design Review".to_string(), &author).unwrap();
+    let info = store
+        .create_channel("Design Review".to_string(), &author)
+        .unwrap();
     let channel = info
         .channels
         .iter()

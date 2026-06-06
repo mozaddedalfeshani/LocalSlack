@@ -63,8 +63,9 @@ export function ChannelShare(props: Props) {
   const latestEventId =
     events.length > 0 ? events[events.length - 1].id : undefined;
   const totalSize = props.files.reduce((sum, item) => sum + item.file.size, 0);
-  const canSendMessage = message.trim().length > 0 && props.devices.length > 0;
-  const canSendFiles = props.files.length > 0 && props.devices.length > 0;
+  const canSend =
+    (message.trim().length > 0 || props.files.length > 0) &&
+    props.devices.length > 0;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({
@@ -75,9 +76,13 @@ export function ChannelShare(props: Props) {
 
   const submitMessage = () => {
     const text = message.trim();
-    if (!text) return;
-    props.onSendMessage(text);
-    setMessage("");
+    if (text) {
+      props.onSendMessage(text);
+      setMessage("");
+    }
+    if (props.files.length > 0) {
+      props.onSendFiles();
+    }
   };
 
   return (
@@ -139,47 +144,6 @@ export function ChannelShare(props: Props) {
         </div>
 
         <footer className="z-10 border-t border-border/60 bg-bg-primary p-4">
-          {props.files.length > 0 && (
-            <div className="mb-3 rounded-md border border-border/70 bg-bg-surface p-3">
-              <div className="mb-2 flex items-center justify-between gap-3">
-                <p className="text-sm font-semibold text-text-primary">
-                  {props.files.length} asset
-                  {props.files.length === 1 ? "" : "s"} ready ·{" "}
-                  {formatBytes(totalSize)}
-                </p>
-                <button
-                  type="button"
-                  className="plain-icon-button"
-                  onClick={props.onClearFiles}
-                  title="Clear assets"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {props.files.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex max-w-44 shrink-0 items-center gap-2 rounded-md border border-border/50 bg-bg-elevated px-2 py-1.5"
-                  >
-                    <File size={16} className="shrink-0 text-accent" />
-                    <span className="min-w-0 flex-1 truncate text-xs text-text-secondary">
-                      {item.file.name}
-                    </span>
-                    <button
-                      type="button"
-                      className="text-text-muted hover:text-error"
-                      onClick={() => props.onRemoveFile(item.id)}
-                      title="Remove"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {props.transferError && (
             <p className="mb-3 rounded-md border border-error/30 bg-error/10 p-3 text-sm text-error">
               {props.transferError}
@@ -187,13 +151,46 @@ export function ChannelShare(props: Props) {
           )}
 
           <div className="rounded-md border border-border/80 bg-bg-surface p-2">
+            {props.files.length > 0 && (
+              <div className="mb-2 flex items-center justify-between gap-3 border-b border-border/50 pb-2 px-1 min-w-0">
+                <div className="flex gap-2 overflow-x-auto flex-1 min-w-0">
+                  {props.files.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex max-w-44 shrink-0 items-center gap-2 rounded-md border border-border/50 bg-bg-elevated px-2 py-1"
+                    >
+                      <File size={14} className="shrink-0 text-accent" />
+                      <span className="min-w-0 flex-1 truncate text-xs text-text-secondary">
+                        {item.file.name}
+                      </span>
+                      <button
+                        type="button"
+                        className="text-text-muted hover:text-error"
+                        onClick={() => props.onRemoveFile(item.id)}
+                        title="Remove"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  className="plain-icon-button p-1 text-text-muted hover:text-text-primary"
+                  onClick={props.onClearFiles}
+                  title="Clear assets"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            )}
             <textarea
               value={message}
               onChange={(event) => setMessage(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === "Enter" && !event.shiftKey) {
                   event.preventDefault();
-                  if (canSendMessage) submitMessage();
+                  if (canSend) submitMessage();
                 }
               }}
               placeholder={`Message #${props.channel.name}`}
@@ -224,17 +221,8 @@ export function ChannelShare(props: Props) {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  className="secondary-button"
-                  disabled={!canSendFiles}
-                  onClick={props.onSendFiles}
-                >
-                  <File size={16} />
-                  Share assets
-                </button>
-                <button
-                  type="button"
                   className="primary-button"
-                  disabled={!canSendMessage}
+                  disabled={!canSend}
                   onClick={submitMessage}
                 >
                   <Send size={16} />

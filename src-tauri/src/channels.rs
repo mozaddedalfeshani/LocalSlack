@@ -3,8 +3,8 @@ use crate::models::{
     SlackInfo,
 };
 use anyhow::{Context, Result};
-use std::collections::{HashMap, HashSet};
 use sled::Tree;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
 const SLACK_INFO_KEY: &[u8] = b"__slack_info";
@@ -128,7 +128,12 @@ impl ChannelStore {
         Ok(Some(event))
     }
 
-    pub fn edit_text(&self, id: &str, author_id: &str, text: String) -> Result<Option<ChannelEvent>> {
+    pub fn edit_text(
+        &self,
+        id: &str,
+        author_id: &str,
+        text: String,
+    ) -> Result<Option<ChannelEvent>> {
         let Some(value) = self.db.get(id.as_bytes())? else {
             return Ok(None);
         };
@@ -276,7 +281,12 @@ impl ChannelStore {
 
 fn ensure_default_channels(info: &mut SlackInfo) {
     let defaults = [
-        ("general", "general", "General", "Open room for everyday team files."),
+        (
+            "general",
+            "general",
+            "General",
+            "Open room for everyday team files.",
+        ),
         (
             "media",
             "media-share",
@@ -368,11 +378,14 @@ fn merge_name_changes(
 
 fn normalize_slack_info(info: &mut SlackInfo) {
     let mut seen_ids = HashSet::<String>::new();
-    info.channels.retain(|channel| seen_ids.insert(channel.id.clone()));
+    info.channels
+        .retain(|channel| seen_ids.insert(channel.id.clone()));
     // Resolve concurrent creates of the same channel name: keep the earlier one.
-    info.channels.sort_by(|a, b| a.created_at.cmp(&b.created_at).then(a.id.cmp(&b.id)));
+    info.channels
+        .sort_by(|a, b| a.created_at.cmp(&b.created_at).then(a.id.cmp(&b.id)));
     let mut seen_names = HashSet::<String>::new();
-    info.channels.retain(|channel| seen_names.insert(channel.name.clone()));
+    info.channels
+        .retain(|channel| seen_names.insert(channel.name.clone()));
     info.channels.sort_by(|a, b| {
         a.created_at
             .cmp(&b.created_at)
@@ -387,13 +400,7 @@ fn normalize_channel_name(name: &str) -> Result<String> {
         .trim_start_matches('#')
         .to_ascii_lowercase()
         .chars()
-        .map(|ch| {
-            if ch.is_ascii_alphanumeric() {
-                ch
-            } else {
-                '-'
-            }
-        })
+        .map(|ch| if ch.is_ascii_alphanumeric() { ch } else { '-' })
         .collect::<String>()
         .split('-')
         .filter(|part| !part.is_empty())
