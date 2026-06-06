@@ -27,12 +27,53 @@ import type {
   ChannelEventsResponse,
   ClipboardPayload,
   DeviceInfo,
+  DirectMessageEvent,
   NetworkStatus,
   SlackInfo,
 } from "./types";
 import { decodeChannelText } from "./utils/channelPayload";
 
 const CHANNEL_SYNC_INTERVAL_MS = 3_000;
+
+const playNotificationSound = () => {
+  try {
+    const AudioContext =
+      window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    if (ctx.state === "suspended") {
+      void ctx.resume();
+    }
+
+    // Ding 1
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = "sine";
+    osc1.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+    gain1.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+
+    // Ding 2
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = "sine";
+    osc2.frequency.setValueAtTime(880.0, ctx.currentTime + 0.08); // A5
+    gain2.gain.setValueAtTime(0.15, ctx.currentTime + 0.08);
+    gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.48);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+
+    osc1.start();
+    osc2.start(ctx.currentTime + 0.08);
+
+    osc1.stop(ctx.currentTime + 0.45);
+    osc2.stop(ctx.currentTime + 0.5);
+  } catch (error) {
+    console.error("Failed to play notification sound", error);
+  }
+};
 
 export default function App() {
   const devices = useDevices();
@@ -126,20 +167,44 @@ export default function App() {
         updatedAt: payload.timestamp,
       });
       ui.setChannel(payload.channelId);
+
+      if (
+        (payload.sender?.id ?? event.payload.sender.id) !==
+        settings.settings.deviceId
+      ) {
+        playNotificationSound();
+      }
     });
     return () => {
       unlisten.then((fn) => fn()).catch(() => undefined);
     };
-  }, [upsertChannelEvent, ui]);
+  }, [upsertChannelEvent, ui, settings.settings.deviceId]);
 
   useEffect(() => {
     const unlisten = listen<ChannelEvent>("channel-event-updated", (event) => {
       upsertChannelEvent(event.payload);
+      if (event.payload.authorId !== settings.settings.deviceId) {
+        playNotificationSound();
+      }
     });
     return () => {
       unlisten.then((fn) => fn()).catch(() => undefined);
     };
-  }, [upsertChannelEvent]);
+  }, [upsertChannelEvent, settings.settings.deviceId]);
+
+  useEffect(() => {
+    const unlisten = listen<DirectMessageEvent>(
+      "direct-message-updated",
+      (event) => {
+        if (event.payload.authorId !== settings.settings.deviceId) {
+          playNotificationSound();
+        }
+      },
+    );
+    return () => {
+      unlisten.then((fn) => fn()).catch(() => undefined);
+    };
+  }, [settings.settings.deviceId]);
 
   const toggleFavorite = async (device: (typeof devices.devices)[number]) => {
     const isFavorite = !device.isFavorite;
@@ -408,6 +473,8 @@ export default function App() {
         onDownloadAsset={downloadChannelAsset}
         onOpenAsset={openChannelAsset}
         onCancel={(id) => transfer.cancel(id)}
+        onOpenDM={openDirectMessage}
+        onToggleFavorite={toggleFavorite}
       />
     ) : ui.view === "dm" ? (
       <DirectMessagePage
@@ -431,6 +498,7 @@ export default function App() {
         onSendFiles={sendDirectFiles}
         onOpenAsset={openChannelAsset}
         onCancel={(id) => transfer.cancel(id)}
+        onToggleFavorite={toggleFavorite}
       />
     ) : ui.view === "receive" ? (
       <ReceiveHome
