@@ -1,29 +1,43 @@
-import { invoke } from "@tauri-apps/api/core";
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import type { FileLike, PathEntry, SelectedFile } from "../types";
+
+export function isImageFileName(fileName?: string): boolean {
+  if (!fileName) return false;
+  const ext = fileName.split(".").pop()?.toLowerCase();
+  return ["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "ico", "tiff"].includes(
+    ext || "",
+  );
+}
 
 export function filesFromList(list: FileList | File[]): SelectedFile[] {
   return Array.from(list).flatMap((file) => {
     const path = (file as File & { path?: string }).path;
     if (!path) return [];
+    const isImg = file.type.startsWith("image/") || isImageFileName(file.name);
     return {
       id: `${file.name}-${file.size}-${file.lastModified}-${crypto.randomUUID()}`,
       file: toFileLike(file),
       path,
-      previewUrl: isImage(file) ? URL.createObjectURL(file) : undefined,
+      previewUrl: isImg ? convertFileSrc(path) : undefined,
     };
   });
 }
 
 export function selectedFilesFromEntries(entries: PathEntry[]): SelectedFile[] {
-  return entries.map((entry) => ({
-    id: entry.id,
-    file: {
-      name: entry.name,
-      size: entry.size,
-      type: entry.mimeType,
-    },
-    path: entry.path,
-  }));
+  return entries.map((entry) => {
+    const isImg =
+      entry.mimeType.startsWith("image/") || isImageFileName(entry.name);
+    return {
+      id: entry.id,
+      file: {
+        name: entry.name,
+        size: entry.size,
+        type: entry.mimeType,
+      },
+      path: entry.path,
+      previewUrl: isImg ? convertFileSrc(entry.path) : undefined,
+    };
+  });
 }
 
 export async function selectedFilesFromPaths(

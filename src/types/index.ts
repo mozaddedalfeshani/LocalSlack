@@ -53,6 +53,7 @@ export interface ChannelEvent {
   createdAt: number;
   updatedAt: number;
   deletedAt?: number;
+  parentId?: string;
 }
 
 export interface ChannelNameChange {
@@ -184,6 +185,8 @@ export interface AppSettings {
   blockedIps: string[];
   retentionMonths: number;
   syncFloor: number;
+  soundNotifications: boolean;
+  desktopNotifications: boolean;
 }
 
 export interface FileLike {

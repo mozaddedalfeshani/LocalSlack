@@ -32,48 +32,9 @@ import type {
   SlackInfo,
 } from "./types";
 import { decodeChannelText } from "./utils/channelPayload";
+import { notifyIncomingMessage, playNotificationSound } from "./utils/windowAttention";
 
 const CHANNEL_SYNC_INTERVAL_MS = 3_000;
-
-const playNotificationSound = () => {
-  try {
-    const AudioContext =
-      window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContext) return;
-    const ctx = new AudioContext();
-    if (ctx.state === "suspended") {
-      void ctx.resume();
-    }
-
-    // Ding 1
-    const osc1 = ctx.createOscillator();
-    const gain1 = ctx.createGain();
-    osc1.type = "sine";
-    osc1.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-    gain1.gain.setValueAtTime(0.15, ctx.currentTime);
-    gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-    osc1.connect(gain1);
-    gain1.connect(ctx.destination);
-
-    // Ding 2
-    const osc2 = ctx.createOscillator();
-    const gain2 = ctx.createGain();
-    osc2.type = "sine";
-    osc2.frequency.setValueAtTime(880.0, ctx.currentTime + 0.08); // A5
-    gain2.gain.setValueAtTime(0.15, ctx.currentTime + 0.08);
-    gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.48);
-    osc2.connect(gain2);
-    gain2.connect(ctx.destination);
-
-    osc1.start();
-    osc2.start(ctx.currentTime + 0.08);
-
-    osc1.stop(ctx.currentTime + 0.45);
-    osc2.stop(ctx.currentTime + 0.5);
-  } catch (error) {
-    console.error("Failed to play notification sound", error);
-  }
-};
 
 export default function App() {
   const devices = useDevices();
@@ -114,6 +75,24 @@ export default function App() {
     const timeout = window.setTimeout(() => void refreshNetworkStatus(), 1500);
     return () => window.clearTimeout(timeout);
   }, [refreshNetworkStatus, settings.settings.hidden]);
+
+  useEffect(() => {
+    if (networkStatus) {
+      const ready = Boolean(
+        networkStatus.hosting &&
+          networkStatus.discoveryRunning &&
+          networkStatus.advertising &&
+          networkStatus.localIps &&
+          networkStatus.localIps.length > 0
+      );
+      if (ready) {
+        const timer = window.setTimeout(() => {
+          setNetworkDialogOpen(false);
+        }, 1000);
+        return () => window.clearTimeout(timer);
+      }
+    }
+  }, [networkStatus]);
 
   useEffect(() => {
     invoke<DeviceInfo>("get_device_info")
@@ -165,6 +144,7 @@ export default function App() {
         availableCount: 1,
         createdAt: payload.timestamp,
         updatedAt: payload.timestamp,
+        parentId: payload.parentId,
       });
       ui.setChannel(payload.channelId);
 
@@ -172,32 +152,49 @@ export default function App() {
         (payload.sender?.id ?? event.payload.sender.id) !==
         settings.settings.deviceId
       ) {
-        playNotificationSound();
+        const channel = channels.find((c) => c.id === payload.channelId);
+        const channelName = channel ? `#${channel.name}` : "Channel Message";
+        const senderName =
+          payload.sender?.name ?? event.payload.sender.name ?? "Teammate";
+        void notifyIncomingMessage(channelName, `${senderName}: ${payload.text}`);
       }
     });
     return () => {
       unlisten.then((fn) => fn()).catch(() => undefined);
     };
-  }, [upsertChannelEvent, ui, settings.settings.deviceId]);
+  }, [upsertChannelEvent, ui, settings.settings.deviceId, channels]);
 
   useEffect(() => {
     const unlisten = listen<ChannelEvent>("channel-event-updated", (event) => {
       upsertChannelEvent(event.payload);
       if (event.payload.authorId !== settings.settings.deviceId) {
-        playNotificationSound();
+        const channel = channels.find((c) => c.id === event.payload.channelId);
+        const channelName = channel ? `#${channel.name}` : "Channel Message";
+        const author = event.payload.authorName || "Someone";
+        const body =
+          event.payload.kind === "asset"
+            ? `shared a file: ${event.payload.fileName}`
+            : event.payload.text || "sent a message";
+        void notifyIncomingMessage(channelName, `${author}: ${body}`);
       }
     });
     return () => {
       unlisten.then((fn) => fn()).catch(() => undefined);
     };
-  }, [upsertChannelEvent, settings.settings.deviceId]);
+  }, [upsertChannelEvent, settings.settings.deviceId, channels]);
 
   useEffect(() => {
     const unlisten = listen<DirectMessageEvent>(
       "direct-message-updated",
       (event) => {
         if (event.payload.authorId !== settings.settings.deviceId) {
-          playNotificationSound();
+          const author = event.payload.authorName || "Someone";
+          const body =
+            event.payload.text ||
+            (event.payload.fileName
+              ? `shared a file: ${event.payload.fileName}`
+              : "sent a message");
+          void notifyIncomingMessage(`Direct Message from ${author}`, body);
         }
       },
     );
@@ -294,7 +291,7 @@ export default function App() {
     lastSeen: Math.floor(Date.now() / 1000),
   };
 
-  const sendChannelFiles = useCallback(() => {
+  const sendChannelFiles = useCallback((parentId?: string) => {
     if (transfer.files.length === 0) return;
     const fileCount = transfer.files.length;
     const toastId = toast.loading(
@@ -309,6 +306,7 @@ export default function App() {
           fileSize: item.file.size,
           filePath: item.path,
           recipientCount: devices.devices.length,
+          parentId: parentId ?? null,
         });
         events.push(event);
         upsertChannelEvent(event);
@@ -338,10 +336,11 @@ export default function App() {
   ]);
 
   const sendChannelMessage = useCallback(
-    (text: string) => {
+    (text: string, parentId?: string) => {
       void invoke<ChannelEvent>("save_channel_text_event", {
         channelId: ui.activeChannelId,
         text,
+        parentId: parentId ?? null,
       })
         .then((event) => {
           upsertChannelEvent(event);
@@ -353,6 +352,7 @@ export default function App() {
             ui.activeChannelId,
             text,
             currentLocalDevice,
+            parentId,
           ),
         );
     },

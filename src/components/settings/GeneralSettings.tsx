@@ -248,6 +248,54 @@ export function GeneralSettings({
               />
             </div>
           </label>
+
+          <label className="flex items-center justify-between cursor-pointer group">
+            <div className="space-y-1">
+              <p className="font-bold text-text-primary group-hover:text-accent transition-colors">
+                Desktop Notifications
+              </p>
+              <p className="text-xs text-text-muted">
+                Show notifications on your desktop for new messages and transfers.
+              </p>
+            </div>
+            <div
+              className={`relative h-6 w-11 rounded-full transition-colors ${settings.desktopNotifications ? "bg-accent" : "bg-border/60"}`}
+            >
+              <div
+                className={`absolute left-1 top-1 h-4 w-4 rounded-full bg-white transition-transform ${settings.desktopNotifications ? "translate-x-5" : "translate-x-0"}`}
+              />
+              <input
+                type="checkbox"
+                className="hidden"
+                checked={settings.desktopNotifications}
+                onChange={(e) => onChange({ desktopNotifications: e.target.checked })}
+              />
+            </div>
+          </label>
+
+          <label className="flex items-center justify-between cursor-pointer group">
+            <div className="space-y-1">
+              <p className="font-bold text-text-primary group-hover:text-accent transition-colors">
+                Notification Sounds
+              </p>
+              <p className="text-xs text-text-muted">
+                Play a sound when you receive a message or a file transfer request.
+              </p>
+            </div>
+            <div
+              className={`relative h-6 w-11 rounded-full transition-colors ${settings.soundNotifications ? "bg-accent" : "bg-border/60"}`}
+            >
+              <div
+                className={`absolute left-1 top-1 h-4 w-4 rounded-full bg-white transition-transform ${settings.soundNotifications ? "translate-x-5" : "translate-x-0"}`}
+              />
+              <input
+                type="checkbox"
+                className="hidden"
+                checked={settings.soundNotifications}
+                onChange={(e) => onChange({ soundNotifications: e.target.checked })}
+              />
+            </div>
+          </label>
         </div>
 
         {/* Danger Zone */}

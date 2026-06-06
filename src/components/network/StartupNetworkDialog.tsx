@@ -1,11 +1,5 @@
-import {
-  AlertTriangle,
-  CheckCircle2,
-  RefreshCw,
-  Server,
-  Wifi,
-  X,
-} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { AlertTriangle, CheckCircle2, Radio, RefreshCw, Wifi } from "lucide-react";
 import type { NetworkStatus } from "../../types";
 
 interface Props {
@@ -15,18 +9,6 @@ interface Props {
   error?: string;
   onRefresh: () => void;
   onClose: () => void;
-}
-
-function StatePill({ ok, label }: { ok: boolean; label: string }) {
-  const Icon = ok ? CheckCircle2 : AlertTriangle;
-  return (
-    <div
-      className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${ok ? "border-success/40 bg-success/10 text-text-primary" : "border-warning/40 bg-warning/10 text-text-secondary"}`}
-    >
-      <Icon size={16} />
-      <span>{label}</span>
-    </div>
-  );
 }
 
 export function StartupNetworkDialog({
@@ -41,118 +23,192 @@ export function StartupNetworkDialog({
 
   const ready = Boolean(
     status &&
-    status.hosting &&
-    status.discoveryRunning &&
-    status.advertising &&
-    status.localIps.length > 0,
+      status.hosting &&
+      status.discoveryRunning &&
+      status.advertising &&
+      status.localIps.length > 0
   );
-  const ips = status?.localIps.length
-    ? status.localIps.join(", ")
-    : "No LAN address";
+
+  // Determine current status message
+  let statusMessage = "Initializing network services...";
+  if (loading) {
+    statusMessage = "Verifying connection...";
+  } else if (error) {
+    statusMessage = "Network verification failed";
+  } else if (status) {
+    if (!status.hosting) {
+      statusMessage = "Starting local server...";
+    } else if (!status.discoveryRunning) {
+      statusMessage = "Setting up device discovery...";
+    } else if (!status.advertising) {
+      statusMessage = "Publishing device presence...";
+    } else if (status.localIps.length === 0) {
+      statusMessage = "Waiting for local IP address...";
+    } else if (ready) {
+      statusMessage = "Connected and ready!";
+    }
+  }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/55 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-[520px] rounded-md border border-border bg-bg-surface shadow-panel">
-        <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <div className="flex items-center gap-3">
-            <span className="grid h-10 w-10 place-items-center rounded-md bg-accent/15 text-accent">
-              <Wifi size={21} />
-            </span>
-            <div>
-              <h2 className="text-lg font-semibold text-text-primary">
-                Network Status
-              </h2>
-              <p className="text-sm text-text-muted">
-                {status?.deviceName ?? "LocalSlack"}
-              </p>
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 grid place-items-center bg-black/75 backdrop-blur-md p-4"
+      >
+        <motion.div
+          initial={{ scale: 0.9, y: 15 }}
+          animate={{ scale: 1, y: 0 }}
+          exit={{ scale: 0.9, y: 15 }}
+          transition={{ type: "spring", damping: 25, stiffness: 350 }}
+          className="w-full max-w-[420px] rounded-3xl border border-white/10 bg-bg-surface/80 p-8 shadow-2xl backdrop-blur-xl text-center relative overflow-hidden"
+        >
+          {/* Subtle top ambient glow */}
+          <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-60 h-60 bg-accent/20 rounded-full blur-3xl pointer-events-none" />
+
+          {/* Animated Logo Container */}
+          <div className="relative mx-auto mb-8 flex h-24 w-24 items-center justify-center">
+            {/* Outer breathing rings */}
+            <motion.div
+              animate={{
+                scale: ready ? [1, 1.1, 1] : [1, 1.4, 1],
+                opacity: ready ? [0.2, 0.4, 0.2] : [0.3, 0.6, 0.3],
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+              className="absolute inset-0 rounded-full bg-accent/10"
+            />
+            <motion.div
+              animate={{
+                scale: ready ? [1, 1.05, 1] : [1, 1.25, 1],
+                opacity: ready ? [0.3, 0.5, 0.3] : [0.4, 0.8, 0.4],
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: 0.5,
+              }}
+              className="absolute inset-2 rounded-full bg-accent/15"
+            />
+
+            {/* Central Icon Base */}
+            <motion.div
+              animate={ready ? { scale: [1, 1.08, 1] } : {}}
+              transition={{ duration: 0.5 }}
+              className={`relative z-10 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-tr ${
+                ready
+                  ? "from-success/30 to-success/10 text-success border border-success/30"
+                  : error
+                    ? "from-error/30 to-error/10 text-error border border-error/30"
+                    : "from-accent/30 to-accent/10 text-accent border border-accent/30"
+              }`}
+            >
+              {ready ? (
+                <CheckCircle2 size={32} className="stroke-[2.5]" />
+              ) : error ? (
+                <AlertTriangle size={32} className="stroke-[2.5] animate-bounce" />
+              ) : (
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                >
+                  <Radio size={32} className="stroke-[2.5]" />
+                </motion.div>
+              )}
+            </motion.div>
+          </div>
+
+          {/* Title and Badge */}
+          <div className="space-y-2 mb-6">
+            <h1 className="text-3xl font-black tracking-tight bg-gradient-to-r from-text-primary via-text-primary to-accent bg-clip-text text-transparent">
+              LocalSlack
+            </h1>
+            <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">
+              LAN Sharing System
+            </p>
+          </div>
+
+          {/* Connection Status Text */}
+          <div className="space-y-4 mb-8">
+            <div className="flex flex-col items-center gap-1.5">
+              <span className="text-sm font-semibold text-text-secondary">
+                {statusMessage}
+              </span>
+              {status?.deviceName && (
+                <span className="text-xs text-text-muted">
+                  Device: {status.deviceName}
+                </span>
+              )}
+            </div>
+
+            {/* Progress Bar / Spinner */}
+            <div className="h-1.5 w-full rounded-full bg-border/20 overflow-hidden relative">
+              {ready ? (
+                <div className="h-full w-full bg-success transition-all duration-500" />
+              ) : error ? (
+                <div className="h-full w-full bg-error" />
+              ) : (
+                <motion.div
+                  initial={{ left: "-40%" }}
+                  animate={{ left: "100%" }}
+                  transition={{
+                    duration: 1.6,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                  className="absolute top-0 bottom-0 w-2/5 rounded-full bg-gradient-to-r from-transparent via-accent to-transparent"
+                />
+              )}
             </div>
           </div>
-          <button
-            type="button"
-            className="icon-button"
-            onClick={onClose}
-            aria-label="Close network status"
-          >
-            <X size={18} />
-          </button>
-        </div>
 
-        <div className="grid gap-4 px-5 py-5">
-          {error && (
-            <div className="rounded-md border border-error/40 bg-error/10 px-3 py-2 text-sm text-text-secondary">
-              {error}
+          {/* Issues warning */}
+          {status?.issues && status.issues.length > 0 && (
+            <div className="mb-6 rounded-xl border border-warning/20 bg-warning/5 p-3 text-left">
+              <div className="flex items-center gap-2 mb-1.5 text-xs font-bold text-warning">
+                <AlertTriangle size={14} />
+                <span>Notice</span>
+              </div>
+              <ul className="text-[11px] text-text-secondary list-disc pl-4 space-y-1">
+                {status.issues.map((issue, i) => (
+                  <li key={i}>{issue}</li>
+                ))}
+              </ul>
             </div>
           )}
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <StatePill ok={Boolean(status?.hosting)} label="Hosting" />
-            <StatePill
-              ok={Boolean(status?.discoveryRunning)}
-              label="Discovery"
-            />
-            <StatePill
-              ok={Boolean(status?.advertising)}
-              label={status?.hidden ? "Hidden" : "Visible"}
-            />
+          {/* Action Buttons */}
+          <div className="flex flex-col gap-2">
+            {error ? (
+              <button
+                type="button"
+                onClick={onRefresh}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-accent py-3 text-sm font-bold text-white shadow-lg shadow-accent/25 hover:shadow-accent/45 transition active:scale-[0.98]"
+              >
+                <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
+                Retry Connection
+              </button>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={onClose}
+              className={`w-full rounded-xl py-3 text-sm font-bold transition ${
+                ready
+                  ? "bg-success text-white shadow-lg shadow-success/25 hover:shadow-success/45 active:scale-[0.98]"
+                  : "bg-bg-elevated/80 border border-border/40 text-text-secondary hover:bg-bg-elevated"
+              }`}
+            >
+              {ready ? "Get Started" : error ? "Skip & Use Offline" : "Cancel Setup"}
+            </button>
           </div>
-
-          <div className="rounded-md border border-border/60 bg-bg-elevated/55 p-4">
-            <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-text-primary">
-              <Server size={17} />
-              <span>
-                {ready
-                  ? "Ready on local network"
-                  : loading
-                    ? "Checking network"
-                    : "Needs attention"}
-              </span>
-            </div>
-            <dl className="grid gap-2 text-sm text-text-secondary">
-              <div className="flex justify-between gap-4">
-                <dt className="text-text-muted">Address</dt>
-                <dd className="text-right">{ips}</dd>
-              </div>
-              <div className="flex justify-between gap-4">
-                <dt className="text-text-muted">Port</dt>
-                <dd>{status?.port ?? "..."}</dd>
-              </div>
-              <div className="flex justify-between gap-4">
-                <dt className="text-text-muted">Service</dt>
-                <dd>{status?.serviceType ?? "_localslack._tcp.local."}</dd>
-              </div>
-            </dl>
-          </div>
-
-          {status?.issues.length ? (
-            <div className="grid gap-2">
-              {status.issues.map((issue) => (
-                <div
-                  key={issue}
-                  className="flex items-center gap-2 text-sm text-text-secondary"
-                >
-                  <AlertTriangle size={15} className="text-warning" />
-                  <span>{issue}</span>
-                </div>
-              ))}
-            </div>
-          ) : null}
-        </div>
-
-        <div className="flex justify-end gap-2 border-t border-border px-5 py-4">
-          <button
-            type="button"
-            className="secondary-button"
-            onClick={onRefresh}
-            disabled={loading}
-          >
-            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-            Refresh
-          </button>
-          <button type="button" className="primary-button" onClick={onClose}>
-            Done
-          </button>
-        </div>
-      </div>
-    </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 }

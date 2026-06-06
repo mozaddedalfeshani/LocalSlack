@@ -57,6 +57,7 @@ fn channel_metadata_tracks_counts_and_recent_renames() {
             created_at: 10,
             updated_at: 10,
             deleted_at: None,
+            parent_id: None,
         })
         .unwrap();
 

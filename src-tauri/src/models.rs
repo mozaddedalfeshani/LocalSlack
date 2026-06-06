@@ -191,6 +191,8 @@ pub struct ChannelEvent {
     pub updated_at: u64,
     #[serde(default)]
     pub deleted_at: Option<u64>,
+    #[serde(default)]
+    pub parent_id: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -297,6 +299,14 @@ pub struct AppSettings {
     /// Unix timestamp (seconds) set on factory reset; events created before this are ignored on sync
     #[serde(default)]
     pub sync_floor: u64,
+    #[serde(default = "default_true")]
+    pub sound_notifications: bool,
+    #[serde(default = "default_true")]
+    pub desktop_notifications: bool,
+}
+
+pub fn default_true() -> bool {
+    true
 }
 
 pub fn default_retention_months() -> u32 {

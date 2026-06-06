@@ -7,6 +7,7 @@ export interface ChannelTextPayload {
   text: string;
   sender?: Pick<DeviceInfo, "id" | "name" | "emoji">;
   timestamp: number;
+  parentId?: string;
 }
 
 export function encodeChannelText(payload: ChannelTextPayload): string {

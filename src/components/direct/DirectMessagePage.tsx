@@ -1,13 +1,23 @@
 import {
+  Bookmark,
+  Copy,
+  Download,
+  ExternalLink,
   File,
   FolderOpen,
+  Forward,
+  MessageSquare,
+  MoreVertical,
   Paperclip,
   RefreshCw,
   Send,
+  Smile,
   X,
-  ExternalLink,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { convertFileSrc } from "@tauri-apps/api/core";
+import { toast } from "sonner";
+import { isImageFileName } from "../../utils/fileUtils";
 
 function renderMessageContent(
   text: string,
@@ -292,30 +302,44 @@ export function DirectMessagePage(props: Props) {
           )}
           {props.files.length > 0 && (
             <div className="mb-2 flex items-center justify-between gap-3 border-b border-border/50 pb-2 px-1 min-w-0">
-              <div className="flex gap-2 overflow-x-auto flex-1 min-w-0">
+              <div className="flex gap-3 overflow-x-auto flex-1 min-w-0 py-1 scrollbar-thin scrollbar-thumb-border">
                 {props.files.map((item) => (
                   <div
                     key={item.id}
-                    className="flex max-w-44 shrink-0 items-center gap-2 rounded-md border border-border/50 bg-bg-elevated px-2 py-1"
+                    className="relative w-16 h-16 rounded-xl border border-border bg-bg-elevated overflow-hidden shrink-0 group flex items-center justify-center shadow-sm"
                   >
-                    <File size={14} className="shrink-0 text-accent" />
-                    <span className="min-w-0 flex-1 truncate text-xs text-text-secondary">
-                      {item.file.name}
-                    </span>
-                    <button
-                      type="button"
-                      className="text-text-muted hover:text-error"
-                      onClick={() => props.onRemoveFile(item.id)}
-                      title="Remove"
-                    >
-                      <X size={12} />
-                    </button>
+                    {item.previewUrl ? (
+                      <img
+                        src={item.previewUrl}
+                        alt={item.file.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center p-1.5 text-center w-full h-full">
+                        <File size={20} className="text-accent mb-0.5" />
+                        <span className="text-[9px] text-text-secondary truncate w-full px-0.5">
+                          {item.file.name}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {/* Delete Overlay */}
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-200">
+                      <button
+                        type="button"
+                        className="p-1 rounded-full bg-error text-white hover:bg-error hover:scale-110 transition-all cursor-pointer"
+                        onClick={() => props.onRemoveFile(item.id)}
+                        title="Remove file"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
               <button
                 type="button"
-                className="plain-icon-button p-1 text-text-muted hover:text-text-primary"
+                className="plain-icon-button p-1 text-text-muted hover:text-text-primary self-center"
                 onClick={props.onClearFiles}
                 title="Clear files"
               >
@@ -516,8 +540,203 @@ function DirectMessageItem({
   onOpen: () => void;
 }) {
   const isText = String(event.kind).toLowerCase() === "text";
+  const [reactions, setReactions] = useState<Record<string, number>>({});
+  const [bookmarked, setBookmarked] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+  const toggleReaction = (emoji: string) => {
+    setReactions((prev) => {
+      const next = { ...prev };
+      if (next[emoji]) {
+        next[emoji] -= 1;
+        if (next[emoji] === 0) {
+          delete next[emoji];
+        }
+      } else {
+        next[emoji] = 1;
+      }
+      return next;
+    });
+  };
+
+  const handleCopy = () => {
+    const textToCopy = event.text || (event.fileName ? `File: ${event.fileName}` : "");
+    if (textToCopy) {
+      void navigator.clipboard.writeText(textToCopy);
+      toast.success("Copied to clipboard");
+    }
+    setShowMoreMenu(false);
+  };
+
+  const handleShare = () => {
+    const textToCopy = event.text || (event.fileName ? `Shared File: ${event.fileName}` : "");
+    if (textToCopy) {
+      void navigator.clipboard.writeText(textToCopy);
+      toast.success("Message shared (copied to clipboard)");
+    }
+  };
+
+  const handleBookmarkToggle = () => {
+    setBookmarked(!bookmarked);
+    toast.success(bookmarked ? "Bookmark removed" : "Message bookmarked");
+  };
+
+  const handleThreadClick = () => {
+    toast.info("Threading is not supported on offline LAN channels");
+  };
+
   return (
-    <article className={`flex gap-3 ${mine ? "opacity-95" : ""}`}>
+    <article
+      onMouseLeave={() => {
+        setShowMoreMenu(false);
+        setShowEmojiPicker(false);
+      }}
+      className={`group flex gap-3 ${mine ? "opacity-95" : ""} relative hover:bg-bg-elevated/20 p-3 rounded-2xl transition-all duration-150`}
+    >
+      {/* Floating Action Bar (Slack Style) */}
+      <div className="absolute -top-4 right-6 z-20 hidden group-hover:flex items-center gap-0.5 rounded-lg border border-border bg-bg-surface p-1 shadow-md animate-in fade-in duration-150">
+        {/* 1. ✅ Reaction */}
+        <button
+          type="button"
+          className="h-7 w-7 rounded hover:bg-bg-elevated flex items-center justify-center text-sm transition cursor-pointer"
+          onClick={() => toggleReaction("✅")}
+          title="React with Checkmark"
+        >
+          ✅
+        </button>
+
+        {/* 2. 👀 Reaction */}
+        <button
+          type="button"
+          className="h-7 w-7 rounded hover:bg-bg-elevated flex items-center justify-center text-sm transition cursor-pointer"
+          onClick={() => toggleReaction("👀")}
+          title="React with Eyes"
+        >
+          👀
+        </button>
+
+        {/* 3. 😍 Reaction */}
+        <button
+          type="button"
+          className="h-7 w-7 rounded hover:bg-bg-elevated flex items-center justify-center text-sm transition cursor-pointer"
+          onClick={() => toggleReaction("😍")}
+          title="React with Heart Eyes"
+        >
+          😍
+        </button>
+
+        {/* 4. Add Reaction popover */}
+        <div className="relative flex items-center">
+          <button
+            type="button"
+            className="h-7 w-7 rounded hover:bg-bg-elevated text-text-secondary hover:text-text-primary flex items-center justify-center transition cursor-pointer"
+            onClick={() => {
+              setShowEmojiPicker(!showEmojiPicker);
+              setShowMoreMenu(false);
+            }}
+            title="Add reaction"
+          >
+            <Smile size={15} />
+          </button>
+          
+          {showEmojiPicker && (
+            <div className="absolute bottom-full right-0 mb-2 z-30 flex gap-1 rounded-lg border border-border bg-bg-surface p-1.5 shadow-lg animate-in fade-in slide-in-from-bottom-1 duration-150">
+              {["👍", "🚀", "🎉", "😂", "😮", "😢"].map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  className="h-7 w-7 rounded hover:bg-bg-elevated flex items-center justify-center text-base transition cursor-pointer"
+                  onClick={() => {
+                    toggleReaction(emoji);
+                    setShowEmojiPicker(false);
+                  }}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* 5. Reply in thread */}
+        <button
+          type="button"
+          className="h-7 w-7 rounded hover:bg-bg-elevated text-text-secondary hover:text-text-primary flex items-center justify-center transition cursor-pointer"
+          onClick={handleThreadClick}
+          title="Reply in thread"
+        >
+          <MessageSquare size={14} />
+        </button>
+
+        {/* 6. Share message */}
+        <button
+          type="button"
+          className="h-7 w-7 rounded hover:bg-bg-elevated text-text-secondary hover:text-text-primary flex items-center justify-center transition cursor-pointer"
+          onClick={handleShare}
+          title="Share message"
+        >
+          <Forward size={14} />
+        </button>
+
+        {/* 7. Bookmark */}
+        <button
+          type="button"
+          className={`h-7 w-7 rounded hover:bg-bg-elevated flex items-center justify-center transition cursor-pointer ${
+            bookmarked ? "text-amber-500" : "text-text-secondary hover:text-text-primary"
+          }`}
+          onClick={handleBookmarkToggle}
+          title="Bookmark message"
+        >
+          <Bookmark size={14} fill={bookmarked ? "currentColor" : "none"} />
+        </button>
+
+        {/* 8. More actions dropdown */}
+        <div className="relative flex items-center">
+          <button
+            type="button"
+            className={`h-7 w-7 rounded hover:bg-bg-elevated text-text-secondary hover:text-text-primary flex items-center justify-center transition cursor-pointer ${
+              showMoreMenu ? "bg-bg-elevated" : ""
+            }`}
+            onClick={() => {
+              setShowMoreMenu(!showMoreMenu);
+              setShowEmojiPicker(false);
+            }}
+            title="More actions"
+          >
+            <MoreVertical size={14} />
+          </button>
+
+          {showMoreMenu && (
+            <div className="absolute right-0 top-full mt-1.5 z-30 w-44 rounded-lg border border-border bg-bg-surface p-1 shadow-lg animate-in fade-in slide-in-from-top-1 duration-150">
+              <button
+                type="button"
+                className="flex w-full items-center gap-2 rounded px-2.5 py-1.5 text-left text-xs text-text-secondary hover:bg-bg-elevated hover:text-text-primary transition-colors cursor-pointer"
+                onClick={handleCopy}
+              >
+                <Copy size={13} />
+                Copy Text
+              </button>
+
+              {/* Asset Specific actions inside dropdown */}
+              {!isText && event.filePath && (
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2 rounded px-2.5 py-1.5 text-left text-xs text-text-secondary hover:bg-bg-elevated hover:text-text-primary transition-colors cursor-pointer"
+                  onClick={() => {
+                    onOpen();
+                    setShowMoreMenu(false);
+                  }}
+                >
+                  <ExternalLink size={13} />
+                  Open File
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-bg-elevated text-lg">
         {event.authorEmoji || "💻"}
       </div>
@@ -544,6 +763,19 @@ function DirectMessageItem({
             <p className="mb-2 text-sm font-semibold text-text-primary">
               Shared a file
             </p>
+            
+            {/* Inline Image Preview (Slack Style) */}
+            {isImageFileName(event.fileName) && event.filePath && (
+              <div className="mb-3 relative max-w-sm rounded-lg overflow-hidden border border-border bg-bg-elevated/30 group/img">
+                <img
+                  src={convertFileSrc(event.filePath)}
+                  alt={event.fileName ?? "Shared image"}
+                  className="max-h-60 w-auto object-contain cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={onOpen}
+                />
+              </div>
+            )}
+
             <div className="flex items-center gap-2 text-sm text-text-secondary">
               <File size={15} className="text-accent" />
               <span className="min-w-0 flex-1 truncate">
@@ -565,6 +797,23 @@ function DirectMessageItem({
                 </button>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Reaction pills row */}
+        {Object.keys(reactions).length > 0 && (
+          <div className="mt-2.5 flex flex-wrap gap-1.5 animate-in fade-in slide-in-from-bottom-1 duration-150">
+            {Object.entries(reactions).map(([emoji, count]) => (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => toggleReaction(emoji)}
+                className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-border/80 bg-bg-surface hover:bg-bg-elevated text-[11px] font-medium text-text-secondary transition duration-150 cursor-pointer"
+              >
+                <span>{emoji}</span>
+                <span className="font-bold text-text-primary text-[10px]">{count}</span>
+              </button>
+            ))}
           </div>
         )}
       </div>

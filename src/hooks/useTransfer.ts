@@ -186,6 +186,7 @@ export function useTransfer() {
     channelId: ChannelId,
     text: string,
     sender: DeviceInfo,
+    parentId?: string,
   ) => {
     store.setError(undefined);
     if (targets.length === 0) {
@@ -203,6 +204,7 @@ export function useTransfer() {
         emoji: sender.emoji,
       },
       timestamp: Math.floor(Date.now() / 1000),
+      parentId,
     });
     const results = await Promise.allSettled(
       targets.map((target) =>

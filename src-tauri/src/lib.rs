@@ -319,6 +319,7 @@ async fn save_channel_text_event(
     state: State<'_, AppState>,
     channel_id: String,
     text: String,
+    parent_id: Option<String>,
 ) -> Result<ChannelEvent, String> {
     let author = state.discovery.local_device(&state.settings).await;
     let now = models::now_unix();
@@ -339,6 +340,7 @@ async fn save_channel_text_event(
         created_at: now,
         updated_at: now,
         deleted_at: None,
+        parent_id,
     };
     state
         .channels
@@ -355,6 +357,7 @@ async fn save_channel_asset_event(
     file_size: u64,
     file_path: String,
     recipient_count: u32,
+    parent_id: Option<String>,
 ) -> Result<ChannelEvent, String> {
     let author = state.discovery.local_device(&state.settings).await;
     let now = models::now_unix();
@@ -376,6 +379,7 @@ async fn save_channel_asset_event(
         created_at: now,
         updated_at: now,
         deleted_at: None,
+        parent_id,
     };
     state
         .channels

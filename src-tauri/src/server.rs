@@ -451,6 +451,7 @@ async fn save_upload(
             created_at: now,
             updated_at: now,
             deleted_at: None,
+            parent_id: None,
         };
         state.channels.save_event(event.clone())?;
         state.app.emit("channel-event-updated", event)?;

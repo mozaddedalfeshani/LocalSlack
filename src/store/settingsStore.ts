@@ -21,6 +21,8 @@ export const defaultSettings: AppSettings = {
   blockedIps: [],
   retentionMonths: 5,
   syncFloor: 0,
+  soundNotifications: true,
+  desktopNotifications: true,
 };
 
 interface SettingsStore {
