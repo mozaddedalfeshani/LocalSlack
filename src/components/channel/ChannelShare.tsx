@@ -419,7 +419,7 @@ function ChannelMessageItem({
               </span>
             </div>
             <div className="mt-3 flex items-center justify-end gap-2">
-              {event.filePath ? (
+              {event.filePath && (
                 <button
                   type="button"
                   className="secondary-button min-h-8 px-3 py-1 text-xs"
@@ -428,16 +428,15 @@ function ChannelMessageItem({
                   <ExternalLink size={14} />
                   Open
                 </button>
-              ) : (
-                <button
-                  type="button"
-                  className="primary-button min-h-8 px-3 py-1 text-xs"
-                  onClick={onDownload}
-                >
-                  <Download size={14} />
-                  Download
-                </button>
               )}
+              <button
+                type="button"
+                className="primary-button min-h-8 px-3 py-1 text-xs"
+                onClick={onDownload}
+              >
+                <Download size={14} />
+                Download
+              </button>
             </div>
           </div>
         )}
