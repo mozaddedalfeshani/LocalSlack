@@ -19,7 +19,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, memo, useMemo, useRef, useState } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { toast } from "sonner";
 import type { ShareChannel } from "../../data/channels";
@@ -281,7 +281,6 @@ export function ChannelShare(props: Props) {
   );
   const latestEventId =
     events.length > 0 ? events[events.length - 1].id : undefined;
-  const totalSize = props.files.reduce((sum, item) => sum + item.file.size, 0);
   const canSend =
     (message.trim().length > 0 || props.files.length > 0) &&
     props.devices.length > 0;
@@ -888,7 +887,7 @@ export function ChannelShare(props: Props) {
   );
 }
 
-function ChannelMessageItem({
+const ChannelMessageItem = memo(function ChannelMessageItem({
   event,
   mine,
   devices,
@@ -1305,9 +1304,9 @@ function ChannelMessageItem({
       </div>
     </article>
   );
-}
+});
 
-function MemberRow({ device, label }: { device: DeviceInfo; label: string }) {
+const MemberRow = memo(function MemberRow({ device, label }: { device: DeviceInfo; label: string }) {
   return (
     <div className="flex items-center gap-3 rounded-md border border-border/50 bg-bg-surface p-3">
       <DeviceAvatar device={device} />
@@ -1320,4 +1319,4 @@ function MemberRow({ device, label }: { device: DeviceInfo; label: string }) {
       <span className="h-2 w-2 rounded-full bg-success" />
     </div>
   );
-}
+});
